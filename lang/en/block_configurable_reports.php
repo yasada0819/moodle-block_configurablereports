@@ -626,3 +626,49 @@ $string['line_yaxis2']     = 'Y2 axis column (optional)';
 $string['pie_doughnut']      = 'Doughnut style';
 $string['pie_doughnut_help'] = 'Display as a doughnut chart instead of a pie chart.';
 
+// Chart.js (bubble)
+
+$string['bubble_label_field']      = 'Label column (optional)';
+$string['bubble_label_field_help'] = 'Select a column to group and color-code bubbles. Select "None" for single color.';
+$string['bubble_label_none']       = 'None (single color)';
+$string['bubble_x_field']          = 'X axis column';
+$string['bubble_x_field_help']     = 'Column for the X axis values (must be numeric).';
+$string['bubble_y_field']          = 'Y axis column';
+$string['bubble_y_field_help']     = 'Column for the Y axis values (must be numeric).';
+$string['bubble_r_field']          = 'Bubble size column';
+$string['bubble_r_field_help']     = 'Column for the bubble size (must be numeric).';
+$string['bubble_rscaling']         = 'Bubble size scaling';
+$string['bubble_rscaling_help']    = 'Auto: normalizes the largest value to the maximum size. Manual: uses the raw value as pixels directly.';
+$string['bubble_rscaling_auto']    = 'Auto (normalize to max size)';
+$string['bubble_rscaling_manual']  = 'Manual (use raw value as pixels)';
+$string['bubble_maxbubblesize']    = 'Maximum bubble size (px)';
+$string['bubble_maxbubblesize_help'] = 'Maximum bubble radius in pixels when using auto scaling. Default: 40.';
+
+// Chart.js (radar)
+
+$string['radar_scalemin']      = 'Scale minimum';
+$string['radar_scalemin_help'] = 'Minimum value of the radar scale. Leave blank for auto.';
+$string['radar_scalemax']      = 'Scale maximum';
+$string['radar_scalemax_help'] = 'Maximum value of the radar scale. Leave blank for auto. e.g. 100 for percentage scores.';
+
+// Chart.js (combo)
+
+$string['combo_bar_fields']      = 'Bar chart series';
+$string['combo_bar_fields_help'] = 'Select one or more columns to display as bar charts.';
+$string['combo_line_fields']     = 'Line chart series';
+$string['combo_line_fields_help'] = 'Select one or more columns to display as line charts.';
+$string['combo_bargrouping']     = 'Bar grouping';
+$string['combo_bargrouping_help'] = 'Select how multiple bar series are displayed.';
+$string['combo_dualaxis']        = 'Dual Y axis';
+$string['combo_dualaxis_help']   = 'Use separate Y axes for bar (left) and line (right) series. Useful when the value ranges differ significantly.';
+
+// Chart.js (tield)
+
+$string['tiledchart_type_area']     = 'Area';
+$string['tiledchart_type_pie']      = 'Pie';
+$string['tiledchart_type_doughnut'] = 'Doughnut';
+$string['tiledchart_type_radar']    = 'Radar';
+$string['tiledchart_col1']          = 'Column 1 (X axis / label / axis name)';
+$string['tiledchart_col1_help']     = 'bar/line/area: X axis label. pie/doughnut: slice label. radar: axis name.';
+$string['tiledchart_col2']          = 'Column 2 (Y axis / value)';
+$string['tiledchart_col2_help']     = 'The value for all chart types: Y axis value, slice size, or axis score.';
