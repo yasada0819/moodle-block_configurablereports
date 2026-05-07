@@ -90,6 +90,12 @@ The following placeholders are available in the template header and footer:
 
 When **Template editor** is set to **GUI builder**, a row-and-column layout editor is available. Each cell can contain a placeholder or custom HTML. The layout is stored as JSON and can be re-edited at any time.
 
+### Acknowledgements
+
+This fork was developed with the assistance of [Claude](https://claude.ai) (Anthropic), 
+an AI assistant, for code generation and design discussion.
+All code has been reviewed and tested by the author.
+
 ---
 
 ## Original README
