@@ -672,3 +672,12 @@ $string['tiledchart_col1']          = 'Column 1 (X axis / label / axis name)';
 $string['tiledchart_col1_help']     = 'bar/line/area: X axis label. pie/doughnut: slice label. radar: axis name.';
 $string['tiledchart_col2']          = 'Column 2 (Y axis / value)';
 $string['tiledchart_col2_help']     = 'The value for all chart types: Y axis value, slice size, or axis score.';
+
+// template editor
+
+$string['template_ph_graphs']     = 'All graphs';
+$string['template_ph_table']      = 'Report table';
+$string['template_ph_reportname'] = 'Report name';
+$string['template_ph_pagination'] = 'Pagination';
+$string['template_ph_export']     = 'Export options';
+$string['template_gui_loading']   = 'Loading GUI builder...';
