@@ -172,8 +172,8 @@ class template_form extends moodleform {
             '##pagination##'   => get_string('template_ph_pagination',  'block_configurable_reports'),
             '##exportoptions##'=> get_string('template_ph_export',      'block_configurable_reports'),
         ];
-        // グラフ個別プレースホルダーを動的に追加
-        for ($i = 0; $i < $graphcount; $i++) {
+        // グラフ個別プレースホルダーを動的に追加（1始まり）
+        for ($i = 1; $i <= $graphcount; $i++) {
             $placeholders["##graph:$i##"] = "Graph $i";
         }
 

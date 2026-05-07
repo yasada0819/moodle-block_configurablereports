@@ -937,7 +937,7 @@ abstract class report_base {
                 $graphhtml .= '<img src="' . $g . '" alt="' . s($this->config->name) . '"><br />';
             }
             $graphhtml .= '</div>';
-            $graphmap['##graph:' . $n . '##'] = $graphhtml;
+            $graphmap['##graph:' . ($n + 1) . '##'] = $graphhtml;
         }
 
         // グラフ以外のプレースホルダーを先に展開
@@ -1113,7 +1113,7 @@ abstract class report_base {
                 $graphhtml .= '<img src="' . $g . '" alt="' . s($this->config->name) . '"><br />';
             }
             $graphhtml .= '</div>';
-            $graphmap['##graph:' . $n . '##'] = $graphhtml;
+            $graphmap['##graph:' . ($n + 1) . '##'] = $graphhtml;
         }
 
         // ##reporttable## 用
