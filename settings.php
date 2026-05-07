@@ -125,4 +125,28 @@ if ($ADMIN->fulltree) {
             get_string('allowedsqlusersinfo', 'block_configurable_reports'), '', PARAM_TEXT
         )
     );
+
+    $settings->add(new admin_setting_configselect(
+    'block_configurable_reports/graphlibrary',
+    get_string('graphlibrary', 'block_configurable_reports'),
+    get_string('graphlibrary_desc', 'block_configurable_reports'),
+    'pchart',
+    [
+        'pchart'  => 'pChart (default)',
+        'chartjs' => 'Chart.js',
+    ]
+    ));
+
+    $settings->add(new admin_setting_configselect(
+    'block_configurable_reports/templateeditor',
+    get_string('templateeditor', 'block_configurable_reports'),
+    get_string('templateeditor_desc', 'block_configurable_reports'),
+    'classic',
+    [
+        'classic' => get_string('templateeditor_classic', 'block_configurable_reports'),
+        'gui'     => get_string('templateeditor_gui',     'block_configurable_reports'),
+    ]
+    ));
+
+    
 }

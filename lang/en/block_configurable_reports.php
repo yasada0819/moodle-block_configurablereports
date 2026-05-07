@@ -585,3 +585,12 @@ be disabled in your config.php file by setting $CFG->block_configurable_reports_
 $string['csvdelimiter'] = 'CSV delimiter';
 $string['csvdelimiterinfo'] = 'CSV delimiter: "colon" for ":", "comma" for ",", semicolon for ";",  "tab" for "\t" and "cfg" for character configured in "CFG->CSV_DELIMITER" of the config.php file.';
 
+// ChartJS Strings.
+$string['graphlibrary'] = 'Graph library';
+$string['graphlibrary_desc'] = 'Select the library used to render graphs. Chart.js renders interactively in the browser; pChart renders as a PNG image (legacy).';
+
+// template editor Strings.
+$string['templateeditor']         = 'Template editor';
+$string['templateeditor_desc']    = 'Select the template editor mode.';
+$string['templateeditor_classic'] = 'Classic (text editor)';
+$string['templateeditor_gui']     = 'GUI builder';
