@@ -42,6 +42,8 @@ class line_form extends moodleform {
         global $CFG;
 
         $mform =& $this->_form;
+
+        // [0 => 'Choose...'] を先頭に置くことで「未選択 = 任意」を実現
         $options = [0 => get_string('choose')];
 
         $report = $this->_customdata['report'];
@@ -85,30 +87,68 @@ class line_form extends moodleform {
             }
         }
 
+        // --- データ設定 ---
         $mform->addElement('header', 'crformheader', get_string('line', 'block_configurable_reports'), '');
 
+        // X軸（必須）
         $mform->addElement('select', 'xaxis', get_string('xaxis', 'block_configurable_reports'), $options);
         $mform->addRule('xaxis', null, 'required', null, 'client');
 
-        $mform->addElement('select', 'serieid', get_string('serieid', 'block_configurable_reports'), $options);
-        $mform->addRule('serieid', null, 'required', null, 'client');
-
+        // Y軸1（必須）
         $mform->addElement('select', 'yaxis', get_string('yaxis', 'block_configurable_reports'), $options);
         $mform->addRule('yaxis', null, 'required', null, 'client');
 
-        $mform->addElement('checkbox', 'group', get_string('groupseries', 'block_configurable_reports'));
+        // Y軸1のグループ列（任意）：0='Choose...' のまま = 未選択扱い
+        $mform->addElement('select', 'serieid',
+            get_string('line_serieid', 'block_configurable_reports'), $options);
+
+        // Y軸2（任意）
+        $mform->addElement('select', 'yaxis2',
+            get_string('line_yaxis2', 'block_configurable_reports'), $options);
+
+        // Y軸2のグループ列（任意）
+        $mform->addElement('select', 'serieid2',
+            get_string('line_serieid2', 'block_configurable_reports'), $options);
+
+        // --- サイズ設定 ---
+        $mform->addElement('header', 'size', get_string('head_size', 'block_configurable_reports'));
+
+        $mform->addElement('text', 'width', get_string('width', 'block_configurable_reports'));
+        $mform->setDefault('width', 900);
+        $mform->setType('width', PARAM_INT);
+
+        $mform->addElement('text', 'height', get_string('height', 'block_configurable_reports'));
+        $mform->setDefault('height', 500);
+        $mform->setType('height', PARAM_INT);
+
+        // --- Chart.js オプション（pChart では無視される） ---
+        $mform->addElement('header', 'chartjsoptions', get_string('head_chartjs_options', 'block_configurable_reports'));
+
+        // スムーズ曲線
+        $mform->addElement('advcheckbox', 'smooth', get_string('line_smooth', 'block_configurable_reports'));
+        $mform->setDefault('smooth', 0);
+        $mform->addHelpButton('smooth', 'line_smooth', 'block_configurable_reports');
+
+        // エリア塗りつぶし
+        $mform->addElement('advcheckbox', 'filled', get_string('line_filled', 'block_configurable_reports'));
+        $mform->setDefault('filled', 0);
+        $mform->addHelpButton('filled', 'line_filled', 'block_configurable_reports');
+
+        // Y軸を分ける（Y1=左軸、Y2=右軸）
+        $mform->addElement('advcheckbox', 'dualaxis', get_string('line_dualaxis', 'block_configurable_reports'));
+        $mform->setDefault('dualaxis', 0);
+        $mform->addHelpButton('dualaxis', 'line_dualaxis', 'block_configurable_reports');
 
         // Buttons.
         $this->add_action_buttons(true, get_string('add'));
     }
 
     /**
-     * Server side rules do not work for uploaded files, implement serverside rules here if needed.
+     * Server side rules
      *
-     * @param array $data  array of ("fieldname"=>value) of submitted data
-     * @param array $files array of uploaded files "element_name"=>tmp_file_path
-     * @return array of "element_name"=>"error_description" if there are errors,
-     *                     or an empty array if everything is OK (true allowed for backwards compatibility too).
+     * @param array $data
+     * @param array $files
+     * @return array
      */
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);

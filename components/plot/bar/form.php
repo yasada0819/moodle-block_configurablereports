@@ -117,6 +117,39 @@ class bar_form extends moodleform {
         $mform->setDefault('height', 500);
         $mform->setType("height", PARAM_INT);
 
+        // Chart.js オプション（pChart では無視される）
+        $mform->addElement('header', 'chartjsoptions', get_string('head_chartjs_options', 'block_configurable_reports'));
+
+        // 表示の向き（縦 / 横）
+        $bardirections = [
+            'vertical'   => get_string('bardirection_vertical',   'block_configurable_reports'),
+            'horizontal' => get_string('bardirection_horizontal',  'block_configurable_reports'),
+        ];
+        $mform->addElement('select', 'bardirection',
+            get_string('bardirection', 'block_configurable_reports'), $bardirections);
+        $mform->setDefault('bardirection', 'vertical');
+        $mform->addHelpButton('bardirection', 'bardirection', 'block_configurable_reports');
+
+        // グループ分け（なし＝横並べ / 積み上げ）
+        $bargroupings = [
+            'grouped' => get_string('bargrouping_grouped', 'block_configurable_reports'),
+            'stacked' => get_string('bargrouping_stacked', 'block_configurable_reports'),
+        ];
+        $mform->addElement('select', 'bargrouping',
+            get_string('bargrouping', 'block_configurable_reports'), $bargroupings);
+        $mform->setDefault('bargrouping', 'grouped');
+        $mform->addHelpButton('bargrouping', 'bargrouping', 'block_configurable_reports');
+
+        // 系列の順番を逆にする
+        $mform->addElement('advcheckbox', 'reversedatasets', get_string('reversedatasets', 'block_configurable_reports'));
+        $mform->setDefault('reversedatasets', 0);
+        $mform->addHelpButton('reversedatasets', 'reversedatasets', 'block_configurable_reports');
+
+        // ヒストグラムモード（棒の隙間をなくす）
+        $mform->addElement('advcheckbox', 'histogram', get_string('histogram', 'block_configurable_reports'));
+        $mform->setDefault('histogram', 0);
+        $mform->addHelpButton('histogram', 'histogram', 'block_configurable_reports');
+
         // Buttons.
         $this->add_action_buttons(true, get_string('add'));
     }

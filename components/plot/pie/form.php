@@ -71,7 +71,6 @@ class pie_form extends moodleform {
             $config = (isset($components['customsql']['config'])) ? $components['customsql']['config'] : new stdclass;
 
             if (isset($config->querysql)) {
-
                 $sql = $config->querysql;
                 $sql = $reportclass->prepare_sql($sql);
                 if ($rs = $reportclass->execute_query($sql)) {
@@ -88,12 +87,33 @@ class pie_form extends moodleform {
             }
         }
 
+        // --- データ設定（既存・変更なし） ---
         $mform->addElement('header', 'crformheader', get_string('coursefield', 'block_configurable_reports'), '');
 
         $mform->addElement('select', 'areaname', get_string('pieareaname', 'block_configurable_reports'), $options);
         $mform->addElement('select', 'areavalue', get_string('pieareavalue', 'block_configurable_reports'), $options);
         $mform->addElement('checkbox', 'group', get_string('groupvalues', 'block_configurable_reports'));
 
+        // --- サイズ設定 ---
+        $mform->addElement('header', 'size', get_string('head_size', 'block_configurable_reports'));
+
+        $mform->addElement('text', 'width', get_string('width', 'block_configurable_reports'));
+        $mform->setDefault('width', 500);
+        $mform->setType('width', PARAM_INT);
+
+        $mform->addElement('text', 'height', get_string('height', 'block_configurable_reports'));
+        $mform->setDefault('height', 500);
+        $mform->setType('height', PARAM_INT);
+
+        // --- Chart.js オプション（pChart では無視される） ---
+        $mform->addElement('header', 'chartjsoptions', get_string('head_chartjs_options', 'block_configurable_reports'));
+
+        // ドーナツモード
+        $mform->addElement('advcheckbox', 'doughnut', get_string('pie_doughnut', 'block_configurable_reports'));
+        $mform->setDefault('doughnut', 0);
+        $mform->addHelpButton('doughnut', 'pie_doughnut', 'block_configurable_reports');
+
+        // --- カラーパレット（既存・変更なし） ---
         $mform->addElement('header', 'legendheader', get_string('legendheader', 'block_configurable_reports'), '');
         $mform->addElement(
             'static',
@@ -146,12 +166,11 @@ class pie_form extends moodleform {
     }
 
     /**
-     * Server side rules do not work for uploaded files, implement serverside rules here if needed.
+     * Server side rules
      *
-     * @param array $data  array of ("fieldname"=>value) of submitted data
-     * @param array $files array of uploaded files "element_name"=>tmp_file_path
-     * @return array of "element_name"=>"error_description" if there are errors,
-     *                     or an empty array if everything is OK (true allowed for backwards compatibility too).
+     * @param array $data
+     * @param array $files
+     * @return array
      */
     public function validation($data, $files): array {
         $errors = [];
