@@ -1,3 +1,5 @@
+[Legacy] This file is kept for historical reference. See README.md for the current documentation.
+
 Configurable Reports Block
 
 Installation, Documentation, Tutorials....
