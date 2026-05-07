@@ -594,3 +594,35 @@ $string['templateeditor']         = 'Template editor';
 $string['templateeditor_desc']    = 'Select the template editor mode.';
 $string['templateeditor_classic'] = 'Classic (text editor)';
 $string['templateeditor_gui']     = 'GUI builder';
+
+// Chart.js (bar / line / pie)
+
+$string['head_chartjs_options'] = 'Chart.js options';
+
+
+$string['bardirection']            = 'Bar direction';
+$string['bardirection_help']       = 'Select the direction of the bars.';
+$string['bardirection_vertical']   = 'Vertical';
+$string['bardirection_horizontal'] = 'Horizontal';
+$string['bargrouping']             = 'Grouping';
+$string['bargrouping_help']        = 'Select how multiple datasets are displayed.';
+$string['bargrouping_grouped']     = 'Grouped (side by side)';
+$string['bargrouping_stacked']     = 'Stacked';
+
+$string['reversedatasets'] = 'Reverse dataset order';
+$string['reversedatasets_help'] = 'Reverse the stacking order of datasets.';
+
+$string['histogram']                   = 'Histogram mode';
+$string['histogram_help']              = 'Remove gaps between bars (useful for frequency distributions).';
+
+$string['line_smooth']       = 'Smooth curves';
+$string['line_smooth_help']  = 'Display lines as smooth curves instead of straight segments.';
+$string['line_filled']       = 'Fill area';
+$string['line_filled_help']  = 'Fill the area below each line.';
+$string['line_serieid']    = 'Y1 group column (optional)';
+$string['line_serieid2']   = 'Y2 group column (optional)';
+$string['line_yaxis2']     = 'Y2 axis column (optional)';
+
+$string['pie_doughnut']      = 'Doughnut style';
+$string['pie_doughnut_help'] = 'Display as a doughnut chart instead of a pie chart.';
+
