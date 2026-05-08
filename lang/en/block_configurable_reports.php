@@ -687,14 +687,22 @@ $string['tiledchart_col1_help']     = 'bar/line/area: X axis label. pie/doughnut
 $string['tiledchart_col2']          = 'Column 2 (Y axis / value)';
 $string['tiledchart_col2_help']     = 'The value for all chart types: Y axis value, slice size, or axis score.';
 
+// Tiled scatter / bubble
+$string['tiledscatter_r_field']        = 'Bubble size column (optional)';
+$string['tiledscatter_r_field_help']   = 'Select a numeric column to use as bubble size. Leave as "none" to display as a scatter plot with fixed point size.';
+$string['tiledscatter_rscale']         = 'Bubble size scaling';
+$string['tiledscatter_rscale_auto']    = 'Auto (scale to max)';
+$string['tiledscatter_rscale_manual']  = 'Manual (use raw value)';
+$string['tiledscatter_rdefault']       = 'Default point / bubble size';
+$string['tiledscatter_rdefault_help']  = 'Point size when no bubble column is selected. Also used as the maximum bubble size in auto scaling.';
+
 
 // ChartJS aggregagtion
 
 $string['head_aggregation']      = 'Aggregation';
 $string['aggregation']           = 'Aggregation method';
 $string['aggregation_help']      = 'Select how to aggregate multiple values for the same label. Select "None" to use raw values.';
-$string['aggregation_none']      = 'None (first value)';
-$string['aggregation_none_help'] = 'Use the first value when multiple rows share the same X label.';
+$string['aggregation_none']      = 'None (raw values)';
 $string['aggregation_count']     = 'Count';
 $string['aggregation_sum']       = 'Sum';
 $string['aggregation_avg']       = 'Average';

@@ -119,12 +119,21 @@ $string['tiledchart_col1_help']     = 'bar/line/area: X軸ラベル。pie/doughn
 $string['tiledchart_col2']          = '列2（Y軸 / 値）';
 $string['tiledchart_col2_help']     = 'すべてのタイプで値として使用されます（Y軸の値・スライスの大きさ・軸のスコア）。';
 
+// Tiled scatter / bubble
+$string['tiledscatter_r_field']        = 'バブルサイズ列（任意）';
+$string['tiledscatter_r_field_help']   = 'バブルサイズに使用する数値列を選択します。「なし」を選択すると固定サイズの散布図として表示されます。';
+$string['tiledscatter_rscale']         = 'バブルサイズのスケーリング';
+$string['tiledscatter_rscale_auto']    = '自動（最大値に合わせてスケール）';
+$string['tiledscatter_rscale_manual']  = '手動（生の値をそのまま使用）';
+$string['tiledscatter_rdefault']       = 'デフォルトの点 / バブルサイズ';
+$string['tiledscatter_rdefault_help']  = 'バブル列が未選択のときの点のサイズ。自動スケーリング時の最大バブルサイズにも使用されます。';
+
 // 集計
 $string['head_aggregation']   = '集計';
 $string['aggregation']        = '集計方法';
 $string['aggregation_help']   = '同じラベルに複数の値がある場合の集計方法を選択します。「なし」を選択すると生の値をそのまま使用します。';
-$string['aggregation_none']      = 'なし（最初の値）';
-$string['aggregation_none_help'] = 'X軸ラベルが同じ行が複数ある場合、最初の値を使用します。';$string['aggregation_count']  = '件数';
+$string['aggregation_none']   = 'なし（生の値）';
+$string['aggregation_count']  = '件数';
 $string['aggregation_sum']    = '合計';
 $string['aggregation_avg']    = '平均';
 $string['aggregation_min']    = '最小値';
