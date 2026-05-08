@@ -1,5 +1,7 @@
 # Configurable Reports Block — Chart.js Fork
 
+[日本語](README_ja.md)
+
 This is a fork of [jleyva/moodle-block_configurablereports](https://github.com/jleyva/moodle-block_configurablereports) (v5.2.0) with Chart.js support and enhanced template features added.
 
 ## About this fork
@@ -47,17 +49,17 @@ Navigate to **Site administration → Plugins → Blocks → Configurable Report
 | Plugin | New options |
 |---|---|
 | Bar | Direction (vertical/horizontal), grouping (grouped/stacked), histogram mode, reverse datasets |
-| Line | Y1/Y2 dual axis, group column (optional), smooth curves, fill area |
+| Line | Up to 5 Y series with per-series aggregation, Y2 axis flag per series, smooth curves, fill area |
 | Pie | Doughnut style, width/height settings |
 
 #### New plugins
 
 | Plugin | Description |
 |---|---|
-| Radar | Radar/spider chart (Chart.js only) |
-| Scatter | Scatter plot with optional color grouping by label column |
-| Bubble | Bubble chart with r-value scaling (auto/manual) |
-| Tiled chart | Small multiples — bar, line, area, pie, doughnut, or radar tiled by group |
+| Radar | Radar/spider chart with per-series aggregation (Chart.js only) |
+| Scatter | Scatter plot with optional color grouping; bubble chart mode when r-field is set |
+| Tiled chart | Small multiples — bar, line, area, pie, doughnut, or radar tiled by group (up to 5 series with aggregation) |
+| Tiled scatter | Scatter / bubble chart tiled by group, with optional color grouping by label column |
 | Combo | Combined bar + line chart with optional dual Y axis |
 
 ### Template improvements
@@ -69,8 +71,8 @@ The following placeholders are available in the template header and footer:
 | Placeholder | Description |
 |---|---|
 | `##graphs##` | All graphs in a single column |
-| `##graph:0##` | First graph only |
-| `##graph:N##` | Nth graph (zero-indexed, dynamic) |
+| `##graph:1##` | First graph only |
+| `##graph:N##` | Nth graph (1-indexed, dynamic) |
 | `##reporttable##` | Data table |
 | `##reportname##` | Report name |
 | `##reportsummary##` | Report summary |
@@ -81,8 +83,8 @@ The following placeholders are available in the template header and footer:
 **Example — two graphs side by side (header):**
 ```html
 <div style="display:flex; gap:16px;">
-  <div style="flex:1;">##graph:0##</div>
   <div style="flex:1;">##graph:1##</div>
+  <div style="flex:1;">##graph:2##</div>
 </div>
 ```
 
