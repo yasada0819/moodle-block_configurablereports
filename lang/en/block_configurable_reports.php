@@ -651,6 +651,13 @@ $string['radar_scalemin_help'] = 'Minimum value of the radar scale. Leave blank 
 $string['radar_scalemax']      = 'Scale maximum';
 $string['radar_scalemax_help'] = 'Maximum value of the radar scale. Leave blank for auto. e.g. 100 for percentage scores.';
 
+$string['radar_series_field'] = 'Column';
+$string['radar_series_agg']   = 'Aggregation';
+$string['radar_series_label'] = 'Legend label (optional)';
+$string['radar_series_add']   = 'Add series';
+$string['radar_series_row'] = 'Series {$a}';
+
+
 // Chart.js (combo)
 
 $string['combo_bar_fields']      = 'Bar chart series';
@@ -672,6 +679,27 @@ $string['tiledchart_col1']          = 'Column 1 (X axis / label / axis name)';
 $string['tiledchart_col1_help']     = 'bar/line/area: X axis label. pie/doughnut: slice label. radar: axis name.';
 $string['tiledchart_col2']          = 'Column 2 (Y axis / value)';
 $string['tiledchart_col2_help']     = 'The value for all chart types: Y axis value, slice size, or axis score.';
+
+
+// ChartJS aggregagtion
+
+$string['head_aggregation']      = 'Aggregation';
+$string['aggregation']           = 'Aggregation method';
+$string['aggregation_help']      = 'Select how to aggregate multiple values for the same label. Select "None" to use raw values.';
+$string['aggregation_none']      = 'None (raw values)';
+$string['aggregation_count']     = 'Count';
+$string['aggregation_sum']       = 'Sum';
+$string['aggregation_avg']       = 'Average';
+$string['aggregation_min']       = 'Min';
+$string['aggregation_q1']        = 'Q1 (25th percentile)';
+$string['aggregation_median']    = 'Median (Q2)';
+$string['aggregation_q3']        = 'Q3 (75th percentile)';
+$string['aggregation_max']       = 'Max';
+$string['nahandling']            = 'Handle missing values (NA)';
+$string['nahandling_help']       = 'How to treat non-numeric or missing values when aggregating.';
+$string['nahandling_exclude']    = 'Exclude from aggregation (default)';
+$string['nahandling_zero']       = 'Treat as zero';
+
 
 // template editor
 

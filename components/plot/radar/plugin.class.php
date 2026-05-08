@@ -1,49 +1,24 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
-/**
- * Configurable Reports a Moodle block for creating customizable reports
- *
- * @copyright  2020 Juan Leyva <juan@moodle.com>
- * @package    block_configurable_reports
- * @author     Juan leyva <http://www.twitter.com/jleyvadelgado>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
 defined('MOODLE_INTERNAL') || die;
 require_once($CFG->dirroot . '/blocks/configurable_reports/plugin.class.php');
 
 /**
  * Class plugin_radar
  *
- * SQLの出力結果をレーダーチャートとして描画するプラグイン。
- * Chart.js 専用（pChart非対応）。
+ * 系列ごとに列・集計方法・凡例ラベルを個別設定できるレーダーチャート。
  *
- * データ構造の前提：
- *   - ラベル列（軸の名前：例 "読解力", "計算力" など）
- *   - 1つ以上の値列（系列：例 学習者ごとのスコア）
+ * フォームデータ：
+ *   label_field    : ラベル列（軸の名前）
+ *   series_field[] : 各系列の列
+ *   series_agg[]   : 各系列の集計方法
+ *   series_label[] : 各系列の凡例ラベル（任意）
+ *   nahandling     : NAの扱い（exclude / zero）
+ *   scalemin/max   : スケール設定
  *
- * @package   block_configurable_reports
+ * 集計方法：none / count / sum / avg / min / q1 / median / q3 / max
  */
 class plugin_radar extends plugin_base {
 
-    /**
-     * Init
-     *
-     * @return void
-     */
     public function init(): void {
         $this->fullname = "Radar chart";
         $this->form = true;
@@ -51,95 +26,157 @@ class plugin_radar extends plugin_base {
         $this->reporttypes = ['courses', 'sql', 'users', 'timeline', 'categories'];
     }
 
-    /**
-     * Summary
-     *
-     * @param object $data
-     * @return string
-     */
     public function summary(object $data): string {
         return "Radar chart summary";
     }
 
     /**
-     * Build the series array from finalreport data.
-     * barプラグインと同じ構造。
-     *
-     * @param object $data
-     * @param array  $finalreport
-     * @return array ['LabelColumnName' => [...labels...], 'Series1' => [...values...], ...]
+     * 値の配列を集計する。
      */
-    protected function build_series(object $data, array $finalreport): array {
-        $series = [];
-        if (!$finalreport) {
-            return $series;
+    protected function aggregate(array $values, string $method) {
+        $n = count($values);
+        if ($n === 0) {
+            return 0;
         }
-
-        [$labelidx, $labelname] = explode(',', $data->label_field);
-        $series[$labelname] = [];
-
-        if (!is_array($data->value_fields)) {
-            $data->value_fields = [$data->value_fields];
+        switch ($method) {
+            case 'count':  return $n;
+            case 'sum':    return array_sum($values);
+            case 'avg':    return array_sum($values) / $n;
+            case 'median': return $this->percentile($values, 50);
+            case 'q1':     return $this->percentile($values, 25);
+            case 'q3':     return $this->percentile($values, 75);
+            case 'min':    return min($values);
+            case 'max':    return max($values);
+            default:       return array_sum($values); // none含む
         }
-
-        foreach ($finalreport as $r) {
-            $series[$labelname][] = $r[$labelidx];
-            foreach ($data->value_fields as $valuefields) {
-                [$idx, $name] = explode(',', $valuefields);
-                $value = $r[$idx];
-
-                if ($idx == $labelidx) {
-                    debugging(
-                        "moodle:configurable_reports:radar:  refusing to chart label field",
-                        DEBUG_DEVELOPER
-                    );
-                    continue;
-                }
-
-                if (!is_numeric($value)) {
-                    debugging(
-                        "moodle:configurable_reports:radar:  substituting 0 for non-numeric value '$value'",
-                        DEBUG_DEVELOPER
-                    );
-                    $value = 0;
-                }
-
-                if (!array_key_exists($name, $series)) {
-                    $series[$name] = [];
-                }
-                $series[$name][] = $value;
-            }
-        }
-
-        return $series;
     }
 
     /**
-     * Execute
-     *
-     * radar は Chart.js 専用。pChart 設定でも Chart.js で描画する。
-     * report.class.php の print_graphs() が返り値の先頭文字で判定するため、
-     * 常に HTML 文字列を返す。
-     *
-     * @param int    $id
-     * @param object $data
-     * @param array  $finalreport
-     * @return string HTML fragment
+     * パーセンタイルを計算する（線形補間）。
      */
+    protected function percentile(array $values, float $pct): float {
+        sort($values);
+        $n   = count($values);
+        $idx = ($pct / 100) * ($n - 1);
+        $lo  = (int)floor($idx);
+        $hi  = (int)ceil($idx);
+        if ($lo === $hi) {
+            return $values[$lo];
+        }
+        return $values[$lo] + ($idx - $lo) * ($values[$hi] - $values[$lo]);
+    }
+
+    /**
+     * 系列データを構築する。
+     *
+     * 返り値：
+     *   '__labels__' => [軸ラベル, ...]
+     *   '系列名'     => [値, ...]
+     */
+    protected function build_series(object $data, array $finalreport): array {
+        if (!$finalreport) {
+            return [];
+        }
+
+        [$labelidx] = explode(',', $data->label_field);
+        $labelidx   = (int)$labelidx;
+        $nahandling = !empty($data->nahandling) ? $data->nahandling : 'exclude';
+
+        // 系列定義を配列として取得
+        $seriesfields = is_array($data->series_field) ? $data->series_field : [];
+        $seriesaggs   = is_array($data->series_agg)   ? $data->series_agg   : [];
+        $serieslabels = is_array($data->series_label) ? $data->series_label : [];
+
+        if (empty($seriesfields)) {
+            return [];
+        }
+
+        // ラベルの出現順を収集
+        $labelorder = [];
+        foreach ($finalreport as $r) {
+            $label = $r[$labelidx];
+            if (!in_array($label, $labelorder, true)) {
+                $labelorder[] = $label;
+            }
+        }
+
+        // 系列ごと・ラベルごとに値を積み上げる
+        // rawdata[$seriesindex][$label][] = value
+        $rawdata = [];
+        foreach ($seriesfields as $si => $sf) {
+            if (empty($sf)) {
+                continue;
+            }
+            [$colidx] = explode(',', $sf);
+            $colidx   = (int)$colidx;
+            $agg      = $seriesaggs[$si] ?? 'none';
+
+            foreach ($finalreport as $r) {
+                $label = $r[$labelidx];
+                $value = $r[$colidx] ?? null;
+
+                if (!is_numeric($value)) {
+                    if ($nahandling === 'zero') {
+                        $value = 0.0;
+                    } else {
+                        continue; // exclude
+                    }
+                }
+
+                $rawdata[$si][$label][] = (float)$value;
+            }
+        }
+
+        // 結果配列を構築
+        $result = ['__labels__' => $labelorder];
+
+        foreach ($seriesfields as $si => $sf) {
+            if (empty($sf)) {
+                continue;
+            }
+            [$colidx, $colname] = explode(',', $sf);
+            $agg   = $seriesaggs[$si]   ?? 'none';
+            $label = !empty($serieslabels[$si])
+                ? $serieslabels[$si]
+                : ($agg !== 'none' ? "$colname ($agg)" : $colname);
+
+            // 同じラベルが重複する場合は連番を付ける
+            $uniquelabel = $label;
+            $suffix      = 2;
+            while (array_key_exists($uniquelabel, $result)) {
+                $uniquelabel = $label . ' ' . $suffix;
+                $suffix++;
+            }
+
+            $values = [];
+            foreach ($labelorder as $lbl) {
+                $vals = $rawdata[$si][$lbl] ?? [];
+                if ($agg === 'none') {
+                    // 集計なし：最初の値を使う
+                    $values[] = !empty($vals) ? $vals[0] : 0;
+                } else {
+                    $values[] = round($this->aggregate($vals, $agg), 4);
+                }
+            }
+
+            $result[$uniquelabel] = $values;
+        }
+
+        return $result;
+    }
+
     public function execute($id, $data, $finalreport) {
         $series = $this->build_series($data, $finalreport);
-
         if (empty($series)) {
             return '';
         }
 
-        // 先頭キーがラベル列。array_shift で取り出し、残りがデータ系列。
-        $labels = array_shift($series);
+        $labels = $series['__labels__'];
+        unset($series['__labels__']);
 
         $width  = property_exists($data, 'width')  ? (int)$data->width  : 500;
         $height = property_exists($data, 'height') ? (int)$data->height : 500;
 
-        // スケール設定（min/max が指定されていれば反映）
         $scaleoptions = ['beginAtZero' => true];
         if (property_exists($data, 'scalemin') && $data->scalemin !== '') {
             $scaleoptions['min'] = (float)$data->scalemin;
@@ -148,7 +185,6 @@ class plugin_radar extends plugin_base {
             $scaleoptions['max'] = (float)$data->scalemax;
         }
 
-        // カラーパレット（radarは塗りつぶしがあるので透過度高め）
         $palette = [
             ['bg' => 'rgba(54,  162, 235, 0.2)', 'border' => 'rgba(54,  162, 235, 1)'],
             ['bg' => 'rgba(255, 99,  132, 0.2)', 'border' => 'rgba(255, 99,  132, 1)'],
@@ -159,17 +195,16 @@ class plugin_radar extends plugin_base {
             ['bg' => 'rgba(201, 203, 207, 0.2)', 'border' => 'rgba(201, 203, 207, 1)'],
         ];
 
-        // datasets 配列を構築
-        $datasets = [];
+        $datasets   = [];
         $colorindex = 0;
         foreach ($series as $name => $values) {
-            $color = $palette[$colorindex % count($palette)];
+            $color      = $palette[$colorindex % count($palette)];
             $datasets[] = [
-                'label'           => $name,
-                'data'            => array_values($values),
-                'backgroundColor' => $color['bg'],
-                'borderColor'     => $color['border'],
-                'borderWidth'     => 2,
+                'label'                => $name,
+                'data'                 => array_values($values),
+                'backgroundColor'      => $color['bg'],
+                'borderColor'          => $color['border'],
+                'borderWidth'          => 2,
                 'pointBackgroundColor' => $color['border'],
             ];
             $colorindex++;
@@ -204,14 +239,6 @@ class plugin_radar extends plugin_base {
         return $html;
     }
 
-    /**
-     * get_series
-     *
-     * radar は graph.php 経由の pChart 描画を使わないため、
-     * このメソッドは使用されない。互換性のためのスタブとして残す。
-     *
-     * @return array
-     */
     public function get_series(): array {
         return [];
     }

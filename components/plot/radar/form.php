@@ -1,42 +1,9 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
-/**
- * Configurable Reports a Moodle block for creating customizable reports
- *
- * @copyright  2020 Juan Leyva <juan@moodle.com>
- * @package    block_configurable_reports
- * @author     Juan leyva <http://www.twitter.com/jleyvadelgado>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 defined('MOODLE_INTERNAL') || die;
-
 require_once($CFG->libdir . '/formslib.php');
 
-/**
- * Class radar_form
- *
- * @package   block_configurable_reports
- */
 class radar_form extends moodleform {
 
-    /**
-     * Form definition
-     */
     public function definition(): void {
         global $CFG;
 
@@ -44,14 +11,11 @@ class radar_form extends moodleform {
         $options = [];
         $report = $this->_customdata['report'];
 
-        // --- 列の選択肢を構築（barと同じロジック） ---
         if ($report->type !== 'sql') {
             $components = cr_unserialize($this->_customdata['report']->components);
-
             if (!is_array($components) || empty($components['columns']['elements'])) {
                 throw new moodle_exception('nocolumns');
             }
-
             $columns = $components['columns']['elements'];
             $i = 0;
             foreach ($columns as $c) {
@@ -64,13 +28,10 @@ class radar_form extends moodleform {
         } else {
             require_once($CFG->dirroot . '/blocks/configurable_reports/report.class.php');
             require_once($CFG->dirroot . '/blocks/configurable_reports/reports/' . $report->type . '/report.class.php');
-
             $reportclassname = 'report_' . $report->type;
             $reportclass = new $reportclassname($report);
-
             $components = cr_unserialize($report->components);
             $config = $components['customsql']['config'] ?? new stdclass;
-
             if (isset($config->querysql)) {
                 $sql = $config->querysql;
                 $sql = $reportclass->prepare_sql($sql);
@@ -89,24 +50,62 @@ class radar_form extends moodleform {
             }
         }
 
-        // --- データ設定 ---
-        $mform->addElement('header', 'crformheader', get_string('head_data', 'block_configurable_reports'), '');
+        // 集計方法の選択肢
+        $aggregations = [
+            'none'   => get_string('aggregation_none',   'block_configurable_reports'),
+            'count'  => get_string('aggregation_count',  'block_configurable_reports'),
+            'sum'    => get_string('aggregation_sum',    'block_configurable_reports'),
+            'avg'    => get_string('aggregation_avg',    'block_configurable_reports'),
+            'min'    => get_string('aggregation_min',    'block_configurable_reports'),
+            'q1'     => get_string('aggregation_q1',     'block_configurable_reports'),
+            'median' => get_string('aggregation_median', 'block_configurable_reports'),
+            'q3'     => get_string('aggregation_q3',     'block_configurable_reports'),
+            'max'    => get_string('aggregation_max',    'block_configurable_reports'),
+        ];
 
-        // ラベル列（軸の名前：例 "読解力", "計算力"）
+        // 列選択に「なし」を追加（未使用系列用）
+        $fieldoptions = array_merge(
+            ['' => get_string('choose')],
+            $options
+        );
+
+        // --- データ設定 ---
+        $mform->addElement('header', 'crformheader',
+            get_string('head_data', 'block_configurable_reports'), '');
+
+        // ラベル列（軸の名前）
         $mform->addElement('select', 'label_field',
             get_string('label_field', 'block_configurable_reports'), $options);
         $mform->addHelpButton('label_field', 'label_field', 'block_configurable_reports');
 
-        // 値列（複数選択可：系列ごとのスコア）
-        $valueselect = $mform->addElement('select', 'value_fields',
-            get_string('value_fields', 'block_configurable_reports'), $options);
-        $valueselect->setMultiple(true);
-        $mform->addHelpButton('value_fields', 'value_fields', 'block_configurable_reports');
+        // 系列：固定5行、横並び
+        // ヘッダー行（ラベル）
+        $mform->addElement('html',
+            '<div class="form-group row">'
+            . '<div class="col-md-3"><strong>' . get_string('radar_series_field', 'block_configurable_reports') . '</strong></div>'
+            . '<div class="col-md-3"><strong>' . get_string('radar_series_agg',   'block_configurable_reports') . '</strong></div>'
+            . '<div class="col-md-4"><strong>' . get_string('radar_series_label', 'block_configurable_reports') . '</strong></div>'
+            . '</div>'
+        );
+
+        for ($i = 0; $i < 5; $i++) {
+            $group = [];
+            $group[] = $mform->createElement('select', "series_field[$i]", '', $fieldoptions);
+            $group[] = $mform->createElement('select', "series_agg[$i]",   '', $aggregations);
+            $group[] = $mform->createElement('text',   "series_label[$i]", '', ['size' => 20]);
+
+            $mform->addGroup($group, "series_group_$i",
+                get_string('radar_series_row', 'block_configurable_reports', $i + 1),
+                ' ', false);
+
+            $mform->setType("series_label[$i]", PARAM_TEXT);
+            $mform->setDefault("series_agg[$i]", 'none');
+        }
 
         // --- サイズ設定 ---
-        $mform->addElement('header', 'size', get_string('head_size', 'block_configurable_reports'));
+        $mform->addElement('header', 'size',
+            get_string('head_size', 'block_configurable_reports'));
 
-        // レーダーチャートは正方形に近い方が見やすいのでデフォルト500x500
         $mform->addElement('text', 'width', get_string('width', 'block_configurable_reports'));
         $mform->setDefault('width', 500);
         $mform->setType('width', PARAM_INT);
@@ -116,23 +115,30 @@ class radar_form extends moodleform {
         $mform->setType('height', PARAM_INT);
 
         // --- Chart.js オプション ---
-        $mform->addElement('header', 'chartjsoptions', get_string('head_chartjs_options', 'block_configurable_reports'));
+        $mform->addElement('header', 'chartjsoptions',
+            get_string('head_chartjs_options', 'block_configurable_reports'));
 
-        // スケールの最小値（空白 = 自動）
         $mform->addElement('text', 'scalemin',
             get_string('radar_scalemin', 'block_configurable_reports'));
         $mform->setDefault('scalemin', '');
-        $mform->setType('scalemin', PARAM_RAW); // 空白許容のためPARAM_RAW、execute側でfloat変換
+        $mform->setType('scalemin', PARAM_RAW);
         $mform->addHelpButton('scalemin', 'radar_scalemin', 'block_configurable_reports');
 
-        // スケールの最大値（空白 = 自動）
         $mform->addElement('text', 'scalemax',
             get_string('radar_scalemax', 'block_configurable_reports'));
         $mform->setDefault('scalemax', '');
         $mform->setType('scalemax', PARAM_RAW);
         $mform->addHelpButton('scalemax', 'radar_scalemax', 'block_configurable_reports');
 
-        // Buttons.
+        $nahandlings = [
+            'exclude' => get_string('nahandling_exclude', 'block_configurable_reports'),
+            'zero'    => get_string('nahandling_zero',    'block_configurable_reports'),
+        ];
+        $mform->addElement('select', 'nahandling',
+            get_string('nahandling', 'block_configurable_reports'), $nahandlings);
+        $mform->setDefault('nahandling', 'exclude');
+        $mform->addHelpButton('nahandling', 'nahandling', 'block_configurable_reports');
+
         $this->add_action_buttons(true, get_string('add'));
     }
 
