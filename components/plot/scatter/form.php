@@ -109,6 +109,28 @@ class scatter_form extends moodleform {
             get_string('scatter_y_field', 'block_configurable_reports'), $options);
         $mform->addHelpButton('y_field', 'scatter_y_field', 'block_configurable_reports');
 
+        // バブルサイズ列（任意）
+        $mform->addElement('select', 'r_field',
+            get_string('tiledscatter_r_field', 'block_configurable_reports'), $labeloptions);
+        $mform->setDefault('r_field', 'none');
+        $mform->addHelpButton('r_field', 'tiledscatter_r_field', 'block_configurable_reports');
+
+        // バブルサイズのスケーリング
+        $rscaleoptions = [
+            'auto'   => get_string('tiledscatter_rscale_auto',   'block_configurable_reports'),
+            'manual' => get_string('tiledscatter_rscale_manual', 'block_configurable_reports'),
+        ];
+        $mform->addElement('select', 'rscale',
+            get_string('tiledscatter_rscale', 'block_configurable_reports'), $rscaleoptions);
+        $mform->setDefault('rscale', 'auto');
+
+        // デフォルトの点サイズ
+        $mform->addElement('text', 'rdefault',
+            get_string('tiledscatter_rdefault', 'block_configurable_reports'));
+        $mform->setDefault('rdefault', 5);
+        $mform->setType('rdefault', PARAM_INT);
+        $mform->addHelpButton('rdefault', 'tiledscatter_rdefault', 'block_configurable_reports');
+
         // --- サイズ設定 ---
         $mform->addElement('header', 'size', get_string('head_size', 'block_configurable_reports'));
 
