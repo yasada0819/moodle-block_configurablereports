@@ -30,6 +30,16 @@ require_once($CFG->libdir . '/formslib.php');
 /**
  * Class tiledchart_form
  *
+ * グループキー列でデータを仕分けし、グループごとに1つのグラフを生成して
+ * タイル状に並べて表示するプラグイン。
+ *
+ * 対応グラフタイプ: bar / pie / doughnut
+ * X軸（ラベル列）は1列固定。Y系列は最大5行で各行に
+ *   - 列選択（series_field）
+ *   - 集計方法（series_agg）
+ *   - 凡例ラベル（series_label、任意）
+ * を設定する。
+ *
  * @package   block_configurable_reports
  */
 class tiledchart_form extends moodleform {
@@ -40,11 +50,12 @@ class tiledchart_form extends moodleform {
     public function definition(): void {
         global $CFG;
 
-        $mform =& $this->_form;
-        $options = [];
+        $mform  =& $this->_form;
         $report = $this->_customdata['report'];
 
-        // --- 列の選択肢を構築（bar/lineと同じロジック） ---
+        // --- 列の選択肢を構築 ---
+        $options = [];
+
         if ($report->type !== 'sql') {
             $components = cr_unserialize($this->_customdata['report']->components);
 
@@ -66,10 +77,10 @@ class tiledchart_form extends moodleform {
             require_once($CFG->dirroot . '/blocks/configurable_reports/reports/' . $report->type . '/report.class.php');
 
             $reportclassname = 'report_' . $report->type;
-            $reportclass = new $reportclassname($report);
+            $reportclass     = new $reportclassname($report);
 
             $components = cr_unserialize($report->components);
-            $config = $components['customsql']['config'] ?? new stdclass;
+            $config     = $components['customsql']['config'] ?? new stdclass;
 
             if (isset($config->querysql)) {
                 $sql = $config->querysql;
@@ -89,43 +100,75 @@ class tiledchart_form extends moodleform {
             }
         }
 
-        // --- データ設定 ---
-        $mform->addElement('header', 'crformheader', get_string('head_data', 'block_configurable_reports'), '');
+        // 集計方法の選択肢
+        $aggregations = [
+            'none'   => get_string('aggregation_none',   'block_configurable_reports'),
+            'count'  => get_string('aggregation_count',  'block_configurable_reports'),
+            'sum'    => get_string('aggregation_sum',    'block_configurable_reports'),
+            'avg'    => get_string('aggregation_avg',    'block_configurable_reports'),
+            'min'    => get_string('aggregation_min',    'block_configurable_reports'),
+            'q1'     => get_string('aggregation_q1',     'block_configurable_reports'),
+            'median' => get_string('aggregation_median', 'block_configurable_reports'),
+            'q3'     => get_string('aggregation_q3',     'block_configurable_reports'),
+            'max'    => get_string('aggregation_max',    'block_configurable_reports'),
+        ];
 
-        // グループキー列（例：courseid, fullname）
+        // 列選択に「なし」を追加（未使用系列用）
+        $fieldoptions = array_merge(
+            ['' => get_string('choose')],
+            $options
+        );
+
+        // --- データ設定 ---
+        $mform->addElement('header', 'crformheader',
+            get_string('head_data', 'block_configurable_reports'), '');
+
+        // グループキー列（タイルの分割単位）
         $mform->addElement('select', 'group_field',
             get_string('tiledchart_group_field', 'block_configurable_reports'), $options);
         $mform->addHelpButton('group_field', 'tiledchart_group_field', 'block_configurable_reports');
 
-        // 列1（X軸 / ラベル / 軸名）
-        // bar/line/area のときは X軸ラベル
-        // pie/doughnut のときはスライスのラベル
-        // radar のときは軸の名前
+        // X軸 / ラベル列（1列固定）
         $mform->addElement('select', 'x_field',
             get_string('tiledchart_col1', 'block_configurable_reports'), $options);
         $mform->addHelpButton('x_field', 'tiledchart_col1', 'block_configurable_reports');
 
-        // 列2（Y軸 / 値）
-        // すべてのタイプで値（Y軸の値・スライスの大きさ・軸のスコア）
-        $mform->addElement('select', 'y_field',
-            get_string('tiledchart_col2', 'block_configurable_reports'), $options);
-        $mform->addHelpButton('y_field', 'tiledchart_col2', 'block_configurable_reports');
+        // --- Y系列（固定5行・横並び） ---
+        $mform->addElement('html',
+            '<div class="form-group row">'
+            . '<div class="col-md-3"><strong>' . get_string('line_series_field', 'block_configurable_reports') . '</strong></div>'
+            . '<div class="col-md-3"><strong>' . get_string('line_series_agg',   'block_configurable_reports') . '</strong></div>'
+            . '<div class="col-md-4"><strong>' . get_string('line_series_label', 'block_configurable_reports') . '</strong></div>'
+            . '</div>'
+        );
+
+        for ($i = 0; $i < 5; $i++) {
+            $group   = [];
+            $group[] = $mform->createElement('select', "series_field[$i]", '', $fieldoptions);
+            $group[] = $mform->createElement('select', "series_agg[$i]",   '', $aggregations);
+            $group[] = $mform->createElement('text',   "series_label[$i]", '', ['size' => 20]);
+
+            $mform->addGroup($group, "series_group_$i",
+                get_string('line_series_row', 'block_configurable_reports', $i + 1),
+                ' ', false);
+
+            $mform->setType("series_label[$i]", PARAM_TEXT);
+            $mform->setDefault("series_agg[$i]", 'none');
+        }
 
         // --- グラフ設定 ---
-        $mform->addElement('header', 'chartjsoptions', get_string('head_chartjs_options', 'block_configurable_reports'));
+        $mform->addElement('header', 'chartjsoptions',
+            get_string('head_chartjs_options', 'block_configurable_reports'));
 
-        // グラフタイプ（bar / line / area / pie / doughnut / radar）
+        // グラフタイプ（bar / pie / doughnut のみ）
         $charttypes = [
-            'line'     => get_string('tiledchart_type_line',     'block_configurable_reports'),
             'bar'      => get_string('tiledchart_type_bar',      'block_configurable_reports'),
-            'area'     => get_string('tiledchart_type_area',     'block_configurable_reports'),
             'pie'      => get_string('tiledchart_type_pie',      'block_configurable_reports'),
             'doughnut' => get_string('tiledchart_type_doughnut', 'block_configurable_reports'),
-            'radar'    => get_string('tiledchart_type_radar',    'block_configurable_reports'),
         ];
         $mform->addElement('select', 'charttype',
             get_string('tiledchart_charttype', 'block_configurable_reports'), $charttypes);
-        $mform->setDefault('charttype', 'line');
+        $mform->setDefault('charttype', 'bar');
 
         // 1行あたりのタイル数
         $columnsoptions = [
@@ -154,6 +197,16 @@ class tiledchart_form extends moodleform {
         $mform->setDefault('tileheight', 280);
         $mform->setType('tileheight', PARAM_INT);
         $mform->addHelpButton('tileheight', 'tiledchart_tileheight', 'block_configurable_reports');
+
+        // NA処理
+        $nahandlings = [
+            'exclude' => get_string('nahandling_exclude', 'block_configurable_reports'),
+            'zero'    => get_string('nahandling_zero',    'block_configurable_reports'),
+        ];
+        $mform->addElement('select', 'nahandling',
+            get_string('nahandling', 'block_configurable_reports'), $nahandlings);
+        $mform->setDefault('nahandling', 'exclude');
+        $mform->addHelpButton('nahandling', 'nahandling', 'block_configurable_reports');
 
         // Buttons.
         $this->add_action_buttons(true, get_string('add'));
