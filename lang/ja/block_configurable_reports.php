@@ -59,8 +59,13 @@ $string['line_filled_help']  = '折れ線の下の領域を塗りつぶします
 $string['line_serieid']      = 'Y軸1のグループ列（任意）';
 $string['line_serieid2']     = 'Y軸2のグループ列（任意）';
 $string['line_yaxis2']       = 'Y軸2の列（任意）';
-$string['line_dualaxis']     = 'Y軸を分ける';
+$string['line_dualaxis']      = 'Y軸を分ける';
 $string['line_dualaxis_help'] = 'Y軸1を左軸、Y軸2を右軸として分けて表示します。値の範囲が大きく異なる場合に有用です。';
+$string['line_series_field']  = '列';
+$string['line_series_agg']    = '集計方法';
+$string['line_series_label']  = '凡例ラベル（任意）';
+$string['line_series_y2']     = 'Y2軸';
+$string['line_series_row']    = '系列 {$a}';
 
 // 円グラフ
 $string['pie_doughnut']      = 'ドーナツスタイル';

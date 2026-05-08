@@ -622,6 +622,13 @@ $string['line_filled_help']  = 'Fill the area below each line.';
 $string['line_serieid']    = 'Y1 group column (optional)';
 $string['line_serieid2']   = 'Y2 group column (optional)';
 $string['line_yaxis2']     = 'Y2 axis column (optional)';
+$string['line_dualaxis']      = 'Split Y axes';
+$string['line_dualaxis_help'] = 'Display Y1 on the left axis and Y2 on the right axis. Useful when the two series have very different value ranges.';
+$string['line_series_field']  = 'Column';
+$string['line_series_agg']    = 'Aggregation';
+$string['line_series_label']  = 'Legend label (optional)';
+$string['line_series_y2']     = 'Y2 axis';
+$string['line_series_row']    = 'Series {$a}';
 
 $string['pie_doughnut']      = 'Doughnut style';
 $string['pie_doughnut_help'] = 'Display as a doughnut chart instead of a pie chart.';

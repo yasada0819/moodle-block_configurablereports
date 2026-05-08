@@ -28,6 +28,19 @@ require_once($CFG->dirroot . '/blocks/configurable_reports/plugin.class.php');
 /**
  * Class plugin_line
  *
+ * graphlibrary 設定に応じて動作が異なる：
+ *   - pChart モード  : URL文字列を返す → report.class.php が <img src="..."> として出力
+ *   - Chart.js モード: HTML文字列を返す → report.class.php がそのまま出力
+ *
+ * Chart.js モードのデータ構造：
+ *   xaxis        : X軸列（'index,colname' 形式）
+ *   series_field : Y系列列の配列（最大5）
+ *   series_agg   : 各系列の集計方法
+ *   series_label : 各系列の凡例ラベル（任意）
+ *   series_y2    : 各系列をY2軸（右軸）に割り当てるかどうか
+ *   nahandling   : NAの扱い（exclude / zero）
+ *   smooth/filled/dualaxis : 描画オプション
+ *
  * @package   block_configurable_reports
  * @author    Juan leyva <http://www.twitter.com/jleyvadelgado>
  */
@@ -35,8 +48,6 @@ class plugin_line extends plugin_base {
 
     /**
      * Init
-     *
-     * @return void
      */
     public function init(): void {
         $this->fullname = get_string('line', 'block_configurable_reports');
@@ -47,9 +58,6 @@ class plugin_line extends plugin_base {
 
     /**
      * Summary
-     *
-     * @param object $data
-     * @return string
      */
     public function summary(object $data): string {
         return get_string('linesummary', 'block_configurable_reports');
@@ -57,15 +65,6 @@ class plugin_line extends plugin_base {
 
     /**
      * Execute
-     *
-     * graphlibrary 設定に応じて返す値が異なる：
-     *   - pChart モード  : URL文字列 → report.class.php が <img src="..."> として出力
-     *   - Chart.js モード: HTML文字列 → report.class.php がそのまま出力
-     *
-     * @param int    $id
-     * @param object $data
-     * @param array  $finalreport
-     * @return string
      */
     public function execute($id, $data, $finalreport) {
         global $CFG;
@@ -76,7 +75,7 @@ class plugin_line extends plugin_base {
             return $this->execute_chartjs($id, $data, $finalreport);
         }
 
-        // --- pChart モード（既存コード・変更なし） ---
+        // --- pChart モード（変更なし） ---
         $series = [];
         $data->xaxis--;
         $data->yaxis--;
@@ -96,7 +95,6 @@ class plugin_line extends plugin_base {
         }
 
         $params = '';
-
         $i = 0;
         foreach ($series as $h => $s) {
             $params .= "&amp;serie$i=" . base64_encode($sname[$h] . '||' . implode(',', $s));
@@ -107,91 +105,182 @@ class plugin_line extends plugin_base {
             '&id=' . $id . $params . '&amp;min=' . $minvalue . '&amp;max=' . $maxvalue . '&courseid=' . $this->report->courseid;
     }
 
+    // =========================================================================
+    // Chart.js モード
+    // =========================================================================
+
+    /**
+     * 値の配列を集計する（radarと共通ロジック）。
+     */
+    protected function aggregate(array $values, string $method) {
+        $n = count($values);
+        if ($n === 0) {
+            return 0;
+        }
+        switch ($method) {
+            case 'count':  return $n;
+            case 'sum':    return array_sum($values);
+            case 'avg':    return array_sum($values) / $n;
+            case 'median': return $this->percentile($values, 50);
+            case 'q1':     return $this->percentile($values, 25);
+            case 'q3':     return $this->percentile($values, 75);
+            case 'min':    return min($values);
+            case 'max':    return max($values);
+            default:       return array_sum($values); // none 含む
+        }
+    }
+
+    /**
+     * パーセンタイルを計算する（線形補間）。
+     */
+    protected function percentile(array $values, float $pct): float {
+        sort($values);
+        $n   = count($values);
+        $idx = ($pct / 100) * ($n - 1);
+        $lo  = (int)floor($idx);
+        $hi  = (int)ceil($idx);
+        if ($lo === $hi) {
+            return $values[$lo];
+        }
+        return $values[$lo] + ($idx - $lo) * ($values[$hi] - $values[$lo]);
+    }
+
+    /**
+     * 系列データを構築する。
+     *
+     * 返り値：
+     *   '__labels__' => [X軸ラベル, ...]  出現順
+     *   '__y2__'     => [系列名, ...]      Y2軸に割り当てる系列名のリスト
+     *   '系列名'     => [値or null, ...]   X軸ラベルと同順
+     *
+     * X軸ラベルの順序は最初に出現した順を使用する。
+     * 集計ありの場合、同じ X ラベルを持つ行の値を集計してプロットする。
+     * 集計なし（none）の場合、同じ X ラベルが複数あれば最後の値を使う。
+     */
+    protected function build_series(object $data, array $finalreport): array {
+        if (!$finalreport) {
+            return [];
+        }
+
+        // X軸列インデックス（'index,colname' 形式）
+        [$xidx] = explode(',', $data->xaxis);
+        $xidx   = (int)$xidx;
+
+        $nahandling   = !empty($data->nahandling) ? $data->nahandling : 'exclude';
+        $seriesfields = is_array($data->series_field) ? $data->series_field : [];
+        $seriesaggs   = is_array($data->series_agg)   ? $data->series_agg   : [];
+        $serieslabels = is_array($data->series_label) ? $data->series_label : [];
+        $seriesy2     = is_array($data->series_y2)    ? $data->series_y2    : [];
+
+        if (empty($seriesfields)) {
+            return [];
+        }
+
+        // X軸ラベルの出現順を収集
+        $labelorder = [];
+        foreach ($finalreport as $r) {
+            $xlabel = (string)($r[$xidx] ?? '');
+            if (!in_array($xlabel, $labelorder, true)) {
+                $labelorder[] = $xlabel;
+            }
+        }
+
+        // 系列ごと・Xラベルごとに値を積み上げる
+        // rawdata[$si][$xlabel][] = value
+        $rawdata = [];
+        foreach ($seriesfields as $si => $sf) {
+            if (empty($sf)) {
+                continue;
+            }
+            [$colidx] = explode(',', $sf);
+            $colidx   = (int)$colidx;
+
+            foreach ($finalreport as $r) {
+                $xlabel = (string)($r[$xidx] ?? '');
+                $value  = $r[$colidx] ?? null;
+
+                if (!is_numeric($value)) {
+                    if ($nahandling === 'zero') {
+                        $value = 0.0;
+                    } else {
+                        continue; // exclude
+                    }
+                }
+
+                $rawdata[$si][$xlabel][] = (float)$value;
+            }
+        }
+
+        // 結果配列を構築
+        $result  = ['__labels__' => $labelorder, '__y2__' => []];
+
+        foreach ($seriesfields as $si => $sf) {
+            if (empty($sf)) {
+                continue;
+            }
+            [$colidx, $colname] = explode(',', $sf, 2);
+            $agg   = $seriesaggs[$si]   ?? 'none';
+            $label = !empty($serieslabels[$si])
+                ? $serieslabels[$si]
+                : ($agg !== 'none' ? "$colname ($agg)" : $colname);
+
+            // 同じラベルが重複する場合は連番を付ける
+            $uniquelabel = $label;
+            $suffix      = 2;
+            while (array_key_exists($uniquelabel, $result)) {
+                $uniquelabel = $label . ' ' . $suffix;
+                $suffix++;
+            }
+
+            // Y2軸フラグ
+            if (!empty($seriesy2[$si])) {
+                $result['__y2__'][] = $uniquelabel;
+            }
+
+            // 値を配列化
+            $values = [];
+            foreach ($labelorder as $xlabel) {
+                $vals = $rawdata[$si][$xlabel] ?? [];
+                if (empty($vals)) {
+                    $values[] = null; // spanGaps=true で線が途切れる
+                } elseif ($agg === 'none') {
+                    $values[] = $vals[0]; // 最初の値
+                } else {
+                    $values[] = round($this->aggregate($vals, $agg), 4);
+                }
+            }
+
+            $result[$uniquelabel] = $values;
+        }
+
+        return $result;
+    }
+
     /**
      * Execute (Chart.js モード)
-     *
-     * 元データは「縦持ち」形式：
-     *   xaxis列  : X軸ラベル（例：日付）
-     *   serieid列: 系列名（例：コース名）→ グループ化キー
-     *   yaxis列  : Y軸の値
-     *
-     * serieid でグループ化し、系列ごとに dataset を作成する。
-     * X軸ラベルは全系列共通で最初に出現した順序を使用する。
-     *
-     * @param int    $id
-     * @param object $data
-     * @param array  $finalreport
-     * @return string HTML fragment
      */
     protected function execute_chartjs($id, $data, $finalreport): string {
         if (empty($finalreport)) {
             return '';
         }
 
-        // form.phpのインデックスは1始まりなので0始まりに変換
-        // 0 = 未選択（'Choose...'）なのでそのままnullとして扱う
-        $xidx     = (int)$data->xaxis - 1;
-        $yidx     = (int)$data->yaxis - 1;
-
-        // Y1グループ列（任意）：0 = 未選択
-        $has_serie  = !empty($data->serieid) && (int)$data->serieid > 0;
-        $serieidx   = $has_serie ? (int)$data->serieid - 1 : null;
-
-        // Y2軸（任意）：yaxis2 > 0 のときのみ有効
-        $has_y2     = !empty($data->yaxis2) && (int)$data->yaxis2 > 0;
-        $yidx2      = $has_y2 ? (int)$data->yaxis2 - 1 : null;
-
-        // Y2グループ列（任意）
-        $has_serie2 = $has_y2 && !empty($data->serieid2) && (int)$data->serieid2 > 0;
-        $serieidx2  = $has_serie2 ? (int)$data->serieid2 - 1 : null;
-
-        $width     = property_exists($data, 'width')  ? (int)$data->width  : 900;
-        $height    = property_exists($data, 'height') ? (int)$data->height : 500;
-        $smooth    = !empty($data->smooth);
-        $filled    = !empty($data->filled);
-        $dualaxis  = !empty($data->dualaxis);
-
-        // --- データを縦持ち→横持ちに変換 ---
-        // labels: X軸ラベルの順序リスト（重複なし・出現順）
-        // seriesdata:  [ 系列名 => [ xラベル => y値 ] ]  Y軸用
-        // seriesdata2: [ 系列名 => [ xラベル => y値 ] ]  Y2軸用
-        $labels      = [];
-        $seriesdata  = [];
-        $seriesdata2 = [];
-
-        foreach ($finalreport as $r) {
-            $xlabel = $r[$xidx] ?? '';
-
-            // Y1系列名：グループ列が未選択なら固定文字列で1系列にまとめる
-            $sname  = $has_serie ? ($r[$serieidx] ?? '') : '__single__';
-            $yval   = (isset($r[$yidx]) && is_numeric($r[$yidx])) ? (float)$r[$yidx] : 0;
-
-            if (!in_array($xlabel, $labels, true)) {
-                $labels[] = $xlabel;
-            }
-            if (!isset($seriesdata[$sname])) {
-                $seriesdata[$sname] = [];
-            }
-            $seriesdata[$sname][$xlabel] = $yval;
-
-            // Y2軸データ
-            if ($has_y2) {
-                // Y2グループ列が未選択なら固定文字列で1系列にまとめる
-                $sname2 = $has_serie2 ? ($r[$serieidx2] ?? '') : '__single2__';
-                $yval2  = (isset($r[$yidx2]) && is_numeric($r[$yidx2])) ? (float)$r[$yidx2] : 0;
-                if (!isset($seriesdata2[$sname2])) {
-                    $seriesdata2[$sname2] = [];
-                }
-                $seriesdata2[$sname2][$xlabel] = $yval2;
-            }
-        }
-
-        if (empty($labels) || empty($seriesdata)) {
+        $series = $this->build_series($data, $finalreport);
+        if (empty($series)) {
             return '';
         }
 
-        // カラーパレット（Y軸用 / Y2軸用で色を分ける）
-        $palette = [
+        $labels  = $series['__labels__'];
+        $y2list  = $series['__y2__'];
+        unset($series['__labels__'], $series['__y2__']);
+
+        $width    = property_exists($data, 'width')    ? (int)$data->width    : 900;
+        $height   = property_exists($data, 'height')   ? (int)$data->height   : 500;
+        $smooth   = !empty($data->smooth);
+        $filled   = !empty($data->filled);
+        $dualaxis = !empty($data->dualaxis);
+
+        // カラーパレット（Y1系列 / Y2系列で色を分ける）
+        $palette1 = [
             ['bg' => 'rgba(54,  162, 235, 0.4)', 'border' => 'rgba(54,  162, 235, 1)'],
             ['bg' => 'rgba(75,  192, 192, 0.4)', 'border' => 'rgba(75,  192, 192, 1)'],
             ['bg' => 'rgba(255, 205, 86,  0.4)', 'border' => 'rgba(255, 205, 86,  1)'],
@@ -203,59 +292,31 @@ class plugin_line extends plugin_base {
             ['bg' => 'rgba(201, 203, 207, 0.4)', 'border' => 'rgba(201, 203, 207, 1)'],
         ];
 
-        // datasets を構築（Y軸系列）
-        $datasets   = [];
-        $colorindex = 0;
-        foreach ($seriesdata as $sname => $xmap) {
-            $color  = $palette[$colorindex % count($palette)];
-            $ydata  = [];
-            foreach ($labels as $xlabel) {
-                $ydata[] = isset($xmap[$xlabel]) ? $xmap[$xlabel] : null;
-            }
-            // '__single__' は未グループ時の内部キーなのでラベルを空にする
-            $displaylabel = ($sname === '__single__') ? '' : (string)$sname;
-            $dataset = [
-                'label'           => $displaylabel,
-                'data'            => $ydata,
-                'borderColor'     => $color['border'],
-                'backgroundColor' => $filled ? $color['bg'] : 'transparent',
-                'borderWidth'     => 2,
-                'tension'         => $smooth ? 0.4 : 0.0,
-                'fill'            => $filled,
-                'spanGaps'        => true,
-                'yAxisID'         => 'y',
-            ];
-            $datasets[] = $dataset;
-            $colorindex++;
-        }
+        $datasets = [];
+        $ci1 = 0;
+        $ci2 = 0;
+        foreach ($series as $sname => $values) {
+            $isY2   = $dualaxis && in_array($sname, $y2list, true);
+            $color  = $isY2
+                ? $palette2[$ci2++ % count($palette2)]
+                : $palette1[$ci1++ % count($palette1)];
 
-        // datasets を構築（Y2軸系列）
-        $colorindex2 = 0;
-        foreach ($seriesdata2 as $sname => $xmap) {
-            $color  = $palette2[$colorindex2 % count($palette2)];
-            $ydata  = [];
-            foreach ($labels as $xlabel) {
-                $ydata[] = isset($xmap[$xlabel]) ? $xmap[$xlabel] : null;
-            }
-            $displaylabel2 = ($sname === '__single2__') ? '' : (string)$sname;
-            $dataset = [
-                'label'           => $displaylabel2,
-                'data'            => $ydata,
+            $datasets[] = [
+                'label'           => $sname,
+                'data'            => array_values($values),
                 'borderColor'     => $color['border'],
                 'backgroundColor' => $filled ? $color['bg'] : 'transparent',
                 'borderWidth'     => 2,
                 'tension'         => $smooth ? 0.4 : 0.0,
                 'fill'            => $filled,
                 'spanGaps'        => true,
-                'yAxisID'         => ($dualaxis && $has_y2) ? 'y2' : 'y',
+                'yAxisID'         => $isY2 ? 'y2' : 'y',
             ];
-            $datasets[] = $dataset;
-            $colorindex2++;
         }
 
         // スケール設定
         $scales = ['y' => ['beginAtZero' => true, 'position' => 'left']];
-        if ($dualaxis && $has_y2) {
+        if ($dualaxis && !empty($y2list)) {
             $scales['y2'] = [
                 'beginAtZero' => true,
                 'position'    => 'right',
@@ -292,8 +353,6 @@ class plugin_line extends plugin_base {
 
     /**
      * Get series (pChart の graph.php から呼ばれる・変更なし)
-     *
-     * @return array
      */
     public function get_series(): array {
         $series = [];
