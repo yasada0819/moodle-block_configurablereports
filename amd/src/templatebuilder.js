@@ -4,6 +4,9 @@
  * 行×カラム構成のレイアウトをGUIで編集し、
  * JSON形式で hidden フィールド（gui_layout）に保存する。
  *
+ * セル編集はアコーディオン方式（モーダルなし）。
+ * Moodle iframe環境での position:fixed 問題を回避。
+ *
  * @module block_configurable_reports/templatebuilder
  */
 define([], function() {
@@ -25,6 +28,9 @@ define([], function() {
     /** hidden フィールド */
     var layoutField = null;
 
+    /** 現在編集中のセル識別子 "rowIndex-cellIndex"、なければ null */
+    var editingKey = null;
+
     /**
      * 状態をJSONにシリアライズしてhiddenフィールドに保存する
      */
@@ -35,7 +41,7 @@ define([], function() {
     }
 
     /**
-     * セルのHTMLを生成する
+     * セルのHTMLを生成する（アコーディオン方式）
      *
      * @param {number} rowIndex
      * @param {number} cellIndex
@@ -43,18 +49,74 @@ define([], function() {
      * @returns {string}
      */
     function renderCell(rowIndex, cellIndex, cell) {
+        var key = rowIndex + '-' + cellIndex;
+        var isEditing = (editingKey === key);
+        var isHtml = cell.type === 'html';
+
         var preview = cell.value
             ? '<code style="font-size:11px;word-break:break-all;">' + escapeHtml(cell.value) + '</code>'
             : '<span style="color:var(--color-text-tertiary);font-size:12px;">空のセル</span>';
 
-        return '<div class="cr-gui-cell" data-row="' + rowIndex + '" data-cell="' + cellIndex + '" '
-            + 'style="border:1px solid var(--color-border-tertiary);border-radius:6px;padding:10px;'
-            + 'background:var(--color-background-secondary);min-height:60px;position:relative;">'
+        // 通常表示
+        var html = '<div class="cr-gui-cell" data-row="' + rowIndex + '" data-cell="' + cellIndex + '" '
+            + 'style="border:1px solid var(--color-border-tertiary);border-radius:6px;'
+            + 'background:var(--color-background-secondary);overflow:hidden;">'
+            + '<div style="padding:10px;">'
             + '<div class="cr-cell-preview" style="margin-bottom:6px;">' + preview + '</div>'
             + '<button type="button" class="cr-edit-cell btn btn-sm btn-outline-secondary" '
             + 'data-row="' + rowIndex + '" data-cell="' + cellIndex + '" '
-            + 'style="font-size:11px;">✎ 編集</button>'
+            + 'style="font-size:11px;">' + (isEditing ? '✕ 閉じる' : '✎ 編集') + '</button>'
             + '</div>';
+
+        // アコーディオン：編集フォーム
+        if (isEditing) {
+            // プレースホルダー選択肢
+            var phOptions = '<option value="">-- プレースホルダーを選択 --</option>';
+            for (var ph in placeholders) {
+                var sel = (cell.value === ph && !isHtml) ? ' selected' : '';
+                phOptions += '<option value="' + escapeHtml(ph) + '"' + sel + '>'
+                    + escapeHtml(ph) + ' (' + escapeHtml(placeholders[ph]) + ')</option>';
+            }
+
+            html += '<div class="cr-gui-cell-form" '
+                + 'style="border-top:1px solid var(--color-border-tertiary);padding:10px;'
+                + 'background:var(--color-background-primary);">'
+                // 種別
+                + '<div style="margin-bottom:8px;">'
+                + '<label style="font-size:12px;display:block;margin-bottom:3px;">種別</label>'
+                + '<select class="cr-cell-type-sel form-select form-select-sm" style="width:auto;" '
+                + 'data-row="' + rowIndex + '" data-cell="' + cellIndex + '">'
+                + '<option value="placeholder"' + (!isHtml ? ' selected' : '') + '>プレースホルダー</option>'
+                + '<option value="html"' + (isHtml ? ' selected' : '') + '>HTML テキスト</option>'
+                + '</select>'
+                + '</div>'
+                // プレースホルダー選択（placeholder選択時のみ表示）
+                + '<div class="cr-ph-section" style="margin-bottom:8px;' + (isHtml ? 'display:none;' : '') + '">'
+                + '<label style="font-size:12px;display:block;margin-bottom:3px;">プレースホルダー</label>'
+                + '<select class="cr-cell-ph-sel form-select form-select-sm" '
+                + 'data-row="' + rowIndex + '" data-cell="' + cellIndex + '">'
+                + phOptions + '</select>'
+                + '</div>'
+                // HTML入力（html選択時のみ表示）
+                + '<div class="cr-html-section" style="margin-bottom:8px;' + (!isHtml ? 'display:none;' : '') + '">'
+                + '<label style="font-size:12px;display:block;margin-bottom:3px;">HTML</label>'
+                + '<textarea class="cr-cell-html-ta form-control" rows="4" '
+                + 'style="font-size:11px;font-family:monospace;" '
+                + 'data-row="' + rowIndex + '" data-cell="' + cellIndex + '">'
+                + escapeHtml(isHtml ? cell.value : '') + '</textarea>'
+                + '</div>'
+                // ボタン
+                + '<div style="display:flex;gap:6px;">'
+                + '<button type="button" class="cr-cell-save btn btn-sm btn-primary" '
+                + 'data-row="' + rowIndex + '" data-cell="' + cellIndex + '">保存</button>'
+                + '<button type="button" class="cr-cell-cancel btn btn-sm btn-outline-secondary" '
+                + 'data-row="' + rowIndex + '" data-cell="' + cellIndex + '">キャンセル</button>'
+                + '</div>'
+                + '</div>';
+        }
+
+        html += '</div>'; // .cr-gui-cell
+        return html;
     }
 
     /**
@@ -79,6 +141,9 @@ define([], function() {
                 + '</div>';
         }
 
+        var isFirst = rowIndex === 0;
+        var isLast  = rowIndex === state.rows.length - 1;
+
         return '<div class="cr-gui-row card mb-2" data-row="' + rowIndex + '">'
             + '<div class="card-header d-flex align-items-center gap-2" style="padding:6px 12px;">'
             + '<span style="font-size:12px;color:var(--color-text-secondary);">行 ' + (rowIndex + 1) + '</span>'
@@ -86,9 +151,9 @@ define([], function() {
             + 'style="width:auto;">' + colOptions + '</select>'
             + '<div class="ml-auto" style="margin-left:auto;">'
             + '<button type="button" class="cr-move-up btn btn-sm btn-outline-secondary" data-row="' + rowIndex + '" '
-            + 'title="上へ" ' + (rowIndex === 0 ? 'disabled' : '') + '>↑</button> '
+            + 'title="上へ" ' + (isFirst ? 'disabled' : '') + '>↑</button> '
             + '<button type="button" class="cr-move-down btn btn-sm btn-outline-secondary" data-row="' + rowIndex + '" '
-            + 'title="下へ" ' + (rowIndex === state.rows.length - 1 ? 'disabled' : '') + '>↓</button> '
+            + 'title="下へ" ' + (isLast ? 'disabled' : '') + '>↓</button> '
             + '<button type="button" class="cr-delete-row btn btn-sm btn-outline-danger" data-row="' + rowIndex + '">'
             + '削除</button>'
             + '</div>'
@@ -137,97 +202,6 @@ define([], function() {
     }
 
     /**
-     * セルを編集するインラインUIを表示する
-     *
-     * @param {number} rowIndex
-     * @param {number} cellIndex
-     */
-    function editCell(rowIndex, cellIndex) {
-        var cell = state.rows[rowIndex].cells[cellIndex];
-
-        // プレースホルダー選択肢
-        var phOptions = '<option value="">-- プレースホルダーを選択 --</option>';
-        for (var ph in placeholders) {
-            phOptions += '<option value="' + escapeHtml(ph) + '">' + escapeHtml(ph) + ' (' + escapeHtml(placeholders[ph]) + ')</option>';
-        }
-
-        var modal = document.createElement('div');
-        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);'
-            + 'display:flex;align-items:center;justify-content:center;z-index:9999;';
-
-        var isHtml = cell.type === 'html';
-
-        modal.innerHTML = '<div style="background:var(--color-background-primary);border-radius:8px;padding:24px;'
-            + 'width:520px;max-width:90vw;box-shadow:0 4px 20px rgba(0,0,0,0.2);">'
-            + '<h3 style="font-size:16px;font-weight:500;margin:0 0 16px;">セルの編集</h3>'
-            + '<div style="margin-bottom:12px;">'
-            + '<label style="font-size:13px;display:block;margin-bottom:4px;">種別</label>'
-            + '<select id="cr-cell-type" class="form-select form-select-sm" style="width:auto;">'
-            + '<option value="placeholder"' + (!isHtml ? ' selected' : '') + '>プレースホルダー</option>'
-            + '<option value="html"' + (isHtml ? ' selected' : '') + '>HTML テキスト</option>'
-            + '</select>'
-            + '</div>'
-            + '<div id="cr-ph-section" style="margin-bottom:12px;' + (isHtml ? 'display:none;' : '') + '">'
-            + '<label style="font-size:13px;display:block;margin-bottom:4px;">プレースホルダー</label>'
-            + '<select id="cr-cell-ph" class="form-select form-select-sm">' + phOptions + '</select>'
-            + '</div>'
-            + '<div id="cr-html-section" style="margin-bottom:12px;' + (!isHtml ? 'display:none;' : '') + '">'
-            + '<label style="font-size:13px;display:block;margin-bottom:4px;">HTML</label>'
-            + '<textarea id="cr-cell-html" class="form-control" rows="5" style="font-size:12px;font-family:monospace;">'
-            + escapeHtml(isHtml ? cell.value : '') + '</textarea>'
-            + '</div>'
-            + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
-            + '<button type="button" id="cr-cell-cancel" class="btn btn-sm btn-outline-secondary">キャンセル</button>'
-            + '<button type="button" id="cr-cell-save" class="btn btn-sm btn-primary">保存</button>'
-            + '</div>'
-            + '</div>';
-
-        document.body.appendChild(modal);
-
-        // 種別切り替え
-        modal.querySelector('#cr-cell-type').addEventListener('change', function() {
-            var isph = this.value === 'placeholder';
-            modal.querySelector('#cr-ph-section').style.display = isph ? '' : 'none';
-            modal.querySelector('#cr-html-section').style.display = isph ? 'none' : '';
-        });
-
-        // 現在値をセット
-        if (!isHtml) {
-            var phSel = modal.querySelector('#cr-cell-ph');
-            for (var i = 0; i < phSel.options.length; i++) {
-                if (phSel.options[i].value === cell.value) {
-                    phSel.selectedIndex = i;
-                    break;
-                }
-            }
-        }
-
-        // キャンセル
-        modal.querySelector('#cr-cell-cancel').addEventListener('click', function() {
-            document.body.removeChild(modal);
-        });
-
-        // 保存
-        modal.querySelector('#cr-cell-save').addEventListener('click', function() {
-            var type = modal.querySelector('#cr-cell-type').value;
-            var value = type === 'placeholder'
-                ? modal.querySelector('#cr-cell-ph').value
-                : modal.querySelector('#cr-cell-html').value;
-
-            state.rows[rowIndex].cells[cellIndex] = { type: type, value: value };
-            document.body.removeChild(modal);
-            render();
-        });
-
-        // 背景クリックで閉じる
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                document.body.removeChild(modal);
-            }
-        });
-    }
-
-    /**
      * イベントをバインドする
      */
     function bindEvents() {
@@ -235,6 +209,7 @@ define([], function() {
         var addBtn = document.getElementById('cr-add-row');
         if (addBtn) {
             addBtn.addEventListener('click', function() {
+                editingKey = null;
                 state.rows.push({
                     cols: 1,
                     cells: [{ type: 'placeholder', value: '' }]
@@ -251,8 +226,8 @@ define([], function() {
                 var row = state.rows[rowIndex];
 
                 row.cols = newCols;
+                editingKey = null;
 
-                // セル数をカラム数に合わせる
                 while (row.cells.length < newCols) {
                     row.cells.push({ type: 'placeholder', value: '' });
                 }
@@ -264,16 +239,69 @@ define([], function() {
             });
         });
 
-        // セル編集
+        // 編集ボタン（トグル）
         document.querySelectorAll('.cr-edit-cell').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                editCell(parseInt(this.dataset.row), parseInt(this.dataset.cell));
+                var key = this.dataset.row + '-' + this.dataset.cell;
+                editingKey = (editingKey === key) ? null : key;
+                render();
+            });
+        });
+
+        // 種別切り替え（placeholder ↔ html）
+        document.querySelectorAll('.cr-cell-type-sel').forEach(function(sel) {
+            sel.addEventListener('change', function() {
+                var row  = this.closest('[data-row]').dataset.row ||
+                           this.dataset.row;
+                var cell = this.dataset.cell;
+                var isph = this.value === 'placeholder';
+                var cellEl = container.querySelector(
+                    '.cr-gui-cell[data-row="' + this.dataset.row + '"][data-cell="' + this.dataset.cell + '"]');
+                if (cellEl) {
+                    var phSec   = cellEl.querySelector('.cr-ph-section');
+                    var htmlSec = cellEl.querySelector('.cr-html-section');
+                    if (phSec)   { phSec.style.display   = isph ? '' : 'none'; }
+                    if (htmlSec) { htmlSec.style.display  = isph ? 'none' : ''; }
+                }
+            });
+        });
+
+        // セル保存
+        document.querySelectorAll('.cr-cell-save').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var rowIndex  = parseInt(this.dataset.row);
+                var cellIndex = parseInt(this.dataset.cell);
+
+                var cellEl = container.querySelector(
+                    '.cr-gui-cell[data-row="' + rowIndex + '"][data-cell="' + cellIndex + '"]');
+
+                var typeSel  = cellEl.querySelector('.cr-cell-type-sel');
+                var phSel    = cellEl.querySelector('.cr-cell-ph-sel');
+                var htmlTa   = cellEl.querySelector('.cr-cell-html-ta');
+
+                var type  = typeSel ? typeSel.value : 'placeholder';
+                var value = type === 'placeholder'
+                    ? (phSel   ? phSel.value   : '')
+                    : (htmlTa  ? htmlTa.value  : '');
+
+                state.rows[rowIndex].cells[cellIndex] = { type: type, value: value };
+                editingKey = null;
+                render();
+            });
+        });
+
+        // セルキャンセル
+        document.querySelectorAll('.cr-cell-cancel').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                editingKey = null;
+                render();
             });
         });
 
         // 行削除
         document.querySelectorAll('.cr-delete-row').forEach(function(btn) {
             btn.addEventListener('click', function() {
+                editingKey = null;
                 var rowIndex = parseInt(this.dataset.row);
                 state.rows.splice(rowIndex, 1);
                 render();
@@ -285,6 +313,7 @@ define([], function() {
             btn.addEventListener('click', function() {
                 var rowIndex = parseInt(this.dataset.row);
                 if (rowIndex > 0) {
+                    editingKey = null;
                     var tmp = state.rows[rowIndex - 1];
                     state.rows[rowIndex - 1] = state.rows[rowIndex];
                     state.rows[rowIndex] = tmp;
@@ -298,6 +327,7 @@ define([], function() {
             btn.addEventListener('click', function() {
                 var rowIndex = parseInt(this.dataset.row);
                 if (rowIndex < state.rows.length - 1) {
+                    editingKey = null;
                     var tmp = state.rows[rowIndex + 1];
                     state.rows[rowIndex + 1] = state.rows[rowIndex];
                     state.rows[rowIndex] = tmp;
