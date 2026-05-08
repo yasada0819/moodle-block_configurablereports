@@ -229,19 +229,18 @@ class line_form extends moodleform {
         );
 
         for ($i = 0; $i < 5; $i++) {
-            $group = [];
-            $group[] = $mform->createElement('select',   "series_field[$i]", '', $fieldoptions);
-            $group[] = $mform->createElement('select',   "series_agg[$i]",   '', $aggregations);
-            $group[] = $mform->createElement('text',     "series_label[$i]", '', ['size' => 20]);
-            $group[] = $mform->createElement('checkbox', "series_y2[$i]",    '');
-
-            $mform->addGroup($group, "series_group_$i",
-                get_string('line_series_row', 'block_configurable_reports', $i + 1),
-                ' ', false);
+            $mform->addElement('html', '<div class="form-group row"><div class="col-md-1"><strong>' . ($i + 1) . '</strong></div><div class="col-md-3">');
+            $mform->addElement('select', "series_field[$i]", '', $fieldoptions);
+            $mform->addElement('html', '</div><div class="col-md-3">');
+            $mform->addElement('select', "series_agg[$i]", '', $aggregations);
+            $mform->addElement('html', '</div><div class="col-md-3">');
+            $mform->addElement('text', "series_label[$i]", '', ['size' => 20]);
+            $mform->addElement('html', '</div><div class="col-md-2">');
+            $mform->addElement('checkbox', "series_y2[$i]", '');
+            $mform->addElement('html', '</div></div>');
 
             $mform->setType("series_label[$i]", PARAM_TEXT);
-            $mform->setDefault("series_agg[$i]", 'none');
-            $mform->setDefault("series_y2[$i]",  0);
+            $mform->setDefault("series_y2[$i]", 0);
         }
 
         // --- サイズ設定 ---

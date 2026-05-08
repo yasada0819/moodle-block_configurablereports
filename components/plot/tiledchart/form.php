@@ -113,12 +113,6 @@ class tiledchart_form extends moodleform {
             'max'    => get_string('aggregation_max',    'block_configurable_reports'),
         ];
 
-        // 列選択に「なし」を追加（未使用系列用）
-        $fieldoptions = array_merge(
-            ['' => get_string('choose')],
-            $options
-        );
-
         // --- データ設定 ---
         $mform->addElement('header', 'crformheader',
             get_string('head_data', 'block_configurable_reports'), '');
@@ -133,6 +127,12 @@ class tiledchart_form extends moodleform {
             get_string('tiledchart_col1', 'block_configurable_reports'), $options);
         $mform->addHelpButton('x_field', 'tiledchart_col1', 'block_configurable_reports');
 
+        // 列選択に「なし」を追加（未使用系列用）
+        $fieldoptions = array_merge(
+            ['' => get_string('choose')],
+            $options
+        );
+
         // --- Y系列（固定5行・横並び） ---
         $mform->addElement('html',
             '<div class="form-group row">'
@@ -143,28 +143,29 @@ class tiledchart_form extends moodleform {
         );
 
         for ($i = 0; $i < 5; $i++) {
-            $group   = [];
-            $group[] = $mform->createElement('select', "series_field[$i]", '', $fieldoptions);
-            $group[] = $mform->createElement('select', "series_agg[$i]",   '', $aggregations);
-            $group[] = $mform->createElement('text',   "series_label[$i]", '', ['size' => 20]);
-
-            $mform->addGroup($group, "series_group_$i",
-                get_string('line_series_row', 'block_configurable_reports', $i + 1),
-                ' ', false);
+            $mform->addElement('html', '<div class="form-group row"><div class="col-md-1"><strong>' . ($i + 1) . '</strong></div><div class="col-md-3">');
+            $mform->addElement('select', "series_field[$i]", '', $fieldoptions);
+            $mform->addElement('html', '</div><div class="col-md-3">');
+            $mform->addElement('select', "series_agg[$i]", '', $aggregations);
+            $mform->addElement('html', '</div><div class="col-md-4">');
+            $mform->addElement('text', "series_label[$i]", '', ['size' => 20]);
+            $mform->addElement('html', '</div></div>');
 
             $mform->setType("series_label[$i]", PARAM_TEXT);
-            $mform->setDefault("series_agg[$i]", 'none');
         }
 
         // --- グラフ設定 ---
         $mform->addElement('header', 'chartjsoptions',
             get_string('head_chartjs_options', 'block_configurable_reports'));
 
-        // グラフタイプ（bar / pie / doughnut のみ）
+        // グラフタイプ
         $charttypes = [
             'bar'      => get_string('tiledchart_type_bar',      'block_configurable_reports'),
+            'line'     => get_string('tiledchart_type_line',     'block_configurable_reports'),
+            'area'     => get_string('tiledchart_type_area',     'block_configurable_reports'),
             'pie'      => get_string('tiledchart_type_pie',      'block_configurable_reports'),
             'doughnut' => get_string('tiledchart_type_doughnut', 'block_configurable_reports'),
+            'radar'    => get_string('tiledchart_type_radar',    'block_configurable_reports'),
         ];
         $mform->addElement('select', 'charttype',
             get_string('tiledchart_charttype', 'block_configurable_reports'), $charttypes);
