@@ -123,8 +123,8 @@ $string['tiledchart_col2_help']     = 'すべてのタイプで値として使�
 $string['head_aggregation']   = '集計';
 $string['aggregation']        = '集計方法';
 $string['aggregation_help']   = '同じラベルに複数の値がある場合の集計方法を選択します。「なし」を選択すると生の値をそのまま使用します。';
-$string['aggregation_none']   = 'なし（生の値）';
-$string['aggregation_count']  = '件数';
+$string['aggregation_none']      = 'なし（最初の値）';
+$string['aggregation_none_help'] = 'X軸ラベルが同じ行が複数ある場合、最初の値を使用します。';$string['aggregation_count']  = '件数';
 $string['aggregation_sum']    = '合計';
 $string['aggregation_avg']    = '平均';
 $string['aggregation_min']    = '最小値';
