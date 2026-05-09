@@ -24,6 +24,14 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// --- coursecustomfield permission plugin ---
+$string['coursecustomfield']                   = 'コースカスタムフィールドの値';
+$string['coursecustomfield_shortname']         = 'カスタムフィールド';
+$string['coursecustomfield_value']             = '期待する値';
+$string['coursecustomfield_value_help']        = '照合する値を入力してください。チェックボックス型は 1（オン）または 0（オフ）、セレクト型はラベルではなくオプション値を入力してください。';
+$string['coursecustomfield_error_field']       = '指定したショートネームのカスタムフィールドが存在しません。';
+ 
+
 // ChartJS 設定
 $string['graphlibrary']      = 'グラフライブラリ';
 $string['graphlibrary_desc'] = 'グラフの描画に使用するライブラリを選択します。Chart.js はブラウザ上でインタラクティブに描画します。pChart は PNG 画像として描画します（レガシー）。';
