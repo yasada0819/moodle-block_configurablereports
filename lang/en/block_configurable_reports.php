@@ -585,3 +585,9 @@ be disabled in your config.php file by setting $CFG->block_configurable_reports_
 $string['csvdelimiter'] = 'CSV delimiter';
 $string['csvdelimiterinfo'] = 'CSV delimiter: "colon" for ":", "comma" for ",", semicolon for ";",  "tab" for "\t" and "cfg" for character configured in "CFG->CSV_DELIMITER" of the config.php file.';
 
+// --- coursecustomfield permission plugin ---
+$string['coursecustomfield']                   = 'Course custom field value';
+$string['coursecustomfield_shortname']         = 'Custom field';
+$string['coursecustomfield_value']             = 'Expected value';
+$string['coursecustomfield_value_help']        = 'Enter the value to match. For checkboxes, use 1 (checked) or 0 (unchecked). For select fields, use the option value (not the label).';
+$string['coursecustomfield_error_field']       = 'The specified custom field shortname does not exist.';
