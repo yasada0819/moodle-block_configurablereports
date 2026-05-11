@@ -709,6 +709,11 @@ $string['pivotchart_value_field_help'] = 'Numeric column to plot on the Y-axis.'
 $string['pivotchart_value_agg']        = 'Aggregation';
 $string['pivotchart_value_agg_help']   = 'How to aggregate when multiple rows share the same X / series combination. Use "Sum" for totals, "Average" for means, "Count" to count rows regardless of the value column.';
  
+// tiledpivot 
+
+$string['tiledpivot']                   = 'Tiled pivot chart';
+$string['tiledpivot_tile_field']        = 'Tile column';
+$string['tiledpivot_tile_field_help']   = 'Column whose distinct values determine how tiles are split (e.g. year, class). Each unique value becomes one tile.';
 
 // Tiled scatter / bubble
 $string['tiledscatter_r_field']        = 'Bubble size column (optional)';

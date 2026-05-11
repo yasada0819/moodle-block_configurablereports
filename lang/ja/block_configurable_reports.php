@@ -138,6 +138,11 @@ $string['pivotchart_value_field_help'] = 'Y軸にプロットする数値列を�
 $string['pivotchart_value_agg']        = '集計方法';
 $string['pivotchart_value_agg_help']   = 'X軸とシリーズの組み合わせが複数行ある場合の集計方法を選択します。合計はSum、平均はAverage、行数をカウントするにはCountを選択してください（Countの場合は値列の内容を問わず行数をカウントします）。';
  
+// tiledpivot プラグイン
+
+$string['tiledpivot']                   = 'タイルドピボットチャート';
+$string['tiledpivot_tile_field']        = 'タイル分割の列';
+$string['tiledpivot_tile_field_help']   = 'タイルの分割単位になる列を選択します（例：年度、クラス）。この列の値の種類がそれぞれ1つのタイルになります。';
 
 // Tiled scatter / bubble
 $string['tiledscatter_r_field']        = 'バブルサイズ列（任意）';
