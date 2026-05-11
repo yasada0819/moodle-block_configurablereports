@@ -596,7 +596,7 @@ $string['coursecustomfield_error_field']       = 'The specified custom field sho
 
 // ChartJS Strings.
 $string['graphlibrary'] = 'Graph library';
-$string['graphlibrary_desc'] = 'Select the library used to render graphs. Chart.js renders interactively in the browser; pChart renders as a PNG image (legacy).';
+$string['graphlibrary_desc'] = 'Select the library used to render graphs. Chart.js and Plotly.js render interactively in the browser; pChart renders as a PNG image (legacy).';
 
 // template editor Strings.
 $string['templateeditor']         = 'Template editor';
@@ -734,3 +734,20 @@ $string['template_ph_reportname'] = 'Report name';
 $string['template_ph_pagination'] = 'Pagination';
 $string['template_ph_export']     = 'Export options';
 $string['template_gui_loading']   = 'Loading GUI builder...';
+
+// Plotly
+$string['plotlycdnurl']      = 'Plotly.js CDN URL';
+$string['plotlycdnurl_desc'] = 'URL for loading Plotly.js. Defaults to the official CDN. Change to a local path if CDN access is restricted (e.g. https://your-server/plotly-3.5.1.min.js).';
+
+// Heatmap (Plotly)
+$string['heatmap_x_field']          = 'X axis column';
+$string['heatmap_x_field_help']     = 'Select the column to use as the X axis (horizontal) of the heatmap.';
+$string['heatmap_y_field']          = 'Y axis column';
+$string['heatmap_y_field_help']     = 'Select the column to use as the Y axis (vertical) of the heatmap.';
+$string['heatmap_value_field']      = 'Value column';
+$string['heatmap_value_field_help'] = 'Select the numeric column to use as the cell value. If multiple rows share the same X/Y combination, they are aggregated using the method below.';
+$string['heatmap_head_plotly']      = 'Display settings (Plotly)';
+$string['heatmap_colorscale']       = 'Color scale';
+$string['heatmap_colorscale_help']  = 'Select the color scale for the heatmap. Viridis is perceptually uniform and recommended for general use.';
+$string['heatmap_reversescale']     = 'Reverse color scale';
+$string['heatmap_plotly_only']      = 'The Heatmap plugin requires Plotly.js. Please set the graph library to "Plotly.js" in the plugin settings.';

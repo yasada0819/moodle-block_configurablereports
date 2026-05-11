@@ -134,8 +134,22 @@ if ($ADMIN->fulltree) {
     [
         'pchart'  => 'pChart (default)',
         'chartjs' => 'Chart.js',
+        'plotly'  => 'Plotly.js',        // ← 追加
     ]
     ));
+
+// ===== graphlibrary の直後に追加 =====
+
+    $settings->add(
+        new admin_setting_configtext(
+            'block_configurable_reports/plotlycdnurl',
+            get_string('plotlycdnurl', 'block_configurable_reports'),
+            get_string('plotlycdnurl_desc', 'block_configurable_reports'),
+            'https://cdn.plot.ly/plotly-3.5.1.min.js',
+            PARAM_URL,
+            60
+        )
+    );
 
     $settings->add(new admin_setting_configselect(
     'block_configurable_reports/templateeditor',

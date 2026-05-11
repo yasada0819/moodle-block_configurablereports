@@ -34,7 +34,7 @@ $string['coursecustomfield_error_field']       = '指定したショートネー
 
 // ChartJS 設定
 $string['graphlibrary']      = 'グラフライブラリ';
-$string['graphlibrary_desc'] = 'グラフの描画に使用するライブラリを選択します。Chart.js はブラウザ上でインタラクティブに描画します。pChart は PNG 画像として描画します（レガシー）。';
+$string['graphlibrary_desc'] = 'グラフの描画に使用するライブラリを選択します。Chart.js と Plotly.js はブラウザ上でインタラクティブに描画します。pChart は PNG 画像として描画します（レガシー）。';
 
 // テンプレートエディタ設定
 $string['templateeditor']         = 'テンプレートエディタ';
@@ -161,3 +161,20 @@ $string['template_ph_reportname'] = 'レポート名';
 $string['template_ph_pagination'] = 'ページネーション';
 $string['template_ph_export']     = 'エクスポートオプション';
 $string['template_gui_loading']   = 'GUIビルダーを読み込み中...';
+
+// Plotly
+$string['plotlycdnurl']      = 'Plotly.js CDN URL';
+$string['plotlycdnurl_desc'] = 'Plotly.js の読み込み先URLです。デフォルトは公式CDNです。CDNにアクセスできないネットワーク環境では、ローカルに配置したファイルのURLに変更してください（例：https://your-server/plotly-3.5.1.min.js）。';
+
+// Heatmap (Plotly)
+$string['heatmap_x_field']          = 'X軸列';
+$string['heatmap_x_field_help']     = 'ヒートマップのX軸（横方向）に使う列を選択してください。';
+$string['heatmap_y_field']          = 'Y軸列';
+$string['heatmap_y_field_help']     = 'ヒートマップのY軸（縦方向）に使う列を選択してください。';
+$string['heatmap_value_field']      = '値列';
+$string['heatmap_value_field_help'] = 'セルの値として使う数値列を選択してください。同じX×Y組み合わせの行が複数ある場合は、下の集計方法で集約されます。';
+$string['heatmap_head_plotly']      = '表示設定（Plotly）';
+$string['heatmap_colorscale']       = 'カラースケール';
+$string['heatmap_colorscale_help']  = 'ヒートマップのカラースケールを選択します。Viridis は知覚的に均一で汎用的に推奨されます。';
+$string['heatmap_reversescale']     = 'カラースケールを反転';
+$string['heatmap_plotly_only']      = 'Heatmapプラグインは Plotly.js が必要です。プラグイン設定でグラフライブラリを「Plotly.js」に設定してください。';
