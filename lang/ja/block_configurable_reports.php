@@ -127,6 +127,18 @@ $string['tiledchart_col1_help']     = 'bar/line/area: X軸ラベル。pie/doughn
 $string['tiledchart_col2']          = '列2（Y軸 / 値）';
 $string['tiledchart_col2_help']     = 'すべてのタイプで値として使用されます（Y軸の値・スライスの大きさ・軸のスコア）。';
 
+// pivotchart プラグイン
+$string['pivotchart']                  = 'ピボットチャート';
+$string['pivotchart_x_field']          = 'X軸の列';
+$string['pivotchart_x_field_help']     = 'X軸ラベルになる列を選択します（例：氏名、日付）。この列の値の種類がX軸の目盛りになります。';
+$string['pivotchart_series_field']     = 'シリーズの列（色分け）';
+$string['pivotchart_series_field_help']= '棒や線の色分けに使う列を選択します（例：科目、カテゴリ）。この列の値の種類がそれぞれ1つの色（系列）になります。';
+$string['pivotchart_value_field']      = '値の列';
+$string['pivotchart_value_field_help'] = 'Y軸にプロットする数値列を選択します。';
+$string['pivotchart_value_agg']        = '集計方法';
+$string['pivotchart_value_agg_help']   = 'X軸とシリーズの組み合わせが複数行ある場合の集計方法を選択します。合計はSum、平均はAverage、行数をカウントするにはCountを選択してください（Countの場合は値列の内容を問わず行数をカウントします）。';
+ 
+
 // Tiled scatter / bubble
 $string['tiledscatter_r_field']        = 'バブルサイズ列（任意）';
 $string['tiledscatter_r_field_help']   = 'バブルサイズに使用する数値列を選択します。「なし」を選択すると固定サイズの散布図として表示されます。';

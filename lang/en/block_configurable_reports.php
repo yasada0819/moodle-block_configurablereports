@@ -696,6 +696,20 @@ $string['tiledchart_col1_help']     = 'bar/line/area: X axis label. pie/doughnut
 $string['tiledchart_col2']          = 'Column 2 (Y axis / value)';
 $string['tiledchart_col2_help']     = 'The value for all chart types: Y axis value, slice size, or axis score.';
 
+
+// pivotchart
+ 
+$string['pivotchart']                  = 'Pivot chart';
+$string['pivotchart_x_field']          = 'X-axis column';
+$string['pivotchart_x_field_help']     = 'Column whose distinct values become the X-axis labels (e.g. student name, date).';
+$string['pivotchart_series_field']     = 'Series column (colour)';
+$string['pivotchart_series_field_help']= 'Column whose distinct values become the series (colours), e.g. subject, category. Each unique value in this column becomes one bar/line colour.';
+$string['pivotchart_value_field']      = 'Value column';
+$string['pivotchart_value_field_help'] = 'Numeric column to plot on the Y-axis.';
+$string['pivotchart_value_agg']        = 'Aggregation';
+$string['pivotchart_value_agg_help']   = 'How to aggregate when multiple rows share the same X / series combination. Use "Sum" for totals, "Average" for means, "Count" to count rows regardless of the value column.';
+ 
+
 // Tiled scatter / bubble
 $string['tiledscatter_r_field']        = 'Bubble size column (optional)';
 $string['tiledscatter_r_field_help']   = 'Select a numeric column to use as bubble size. Leave as "none" to display as a scatter plot with fixed point size.';
