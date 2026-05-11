@@ -186,43 +186,72 @@ class plugin_bar extends plugin_base {
      * @return string HTML fragment
      */
     protected function execute_chartjs($id, $data, $finalreport): string {
-        $series = $this->build_series($data, $finalreport);
 
-        if (empty($series)) {
-            return '';
+        // series_field があれば新設計（5系列+集計）、なければ旧設計（label_field+value_fields）
+        if (!empty($data->series_field) && is_array($data->series_field)) {
+            $seriesdata = $this->build_series_chartjs($data, $finalreport);
+            if (empty($seriesdata)) {
+                return '';
+            }
+            $labels  = $seriesdata['__labels__'];
+            unset($seriesdata['__labels__']);
+
+            $palette = [
+                ['bg' => 'rgba(54,  162, 235, 0.8)', 'border' => 'rgba(54,  162, 235, 1)'],
+                ['bg' => 'rgba(255, 99,  132, 0.8)', 'border' => 'rgba(255, 99,  132, 1)'],
+                ['bg' => 'rgba(75,  192, 192, 0.8)', 'border' => 'rgba(75,  192, 192, 1)'],
+                ['bg' => 'rgba(255, 205, 86,  0.8)', 'border' => 'rgba(255, 205, 86,  1)'],
+                ['bg' => 'rgba(153, 102, 255, 0.8)', 'border' => 'rgba(153, 102, 255, 1)'],
+            ];
+
+            $datasets   = [];
+            $colorindex = 0;
+            foreach ($seriesdata as $sname => $values) {
+                $color      = $palette[$colorindex % count($palette)];
+                $datasets[] = [
+                    'label'           => $sname,
+                    'data'            => array_values($values),
+                    'backgroundColor' => $color['bg'],
+                    'borderColor'     => $color['border'],
+                    'borderWidth'     => 1,
+                ];
+                $colorindex++;
+            }
+        } else {
+            // 旧設計：label_field + value_fields
+            $series = $this->build_series($data, $finalreport);
+            if (empty($series)) {
+                return '';
+            }
+            $labels  = array_shift($series);
+
+            $palette = [
+                'rgba(54,  162, 235, 0.8)',
+                'rgba(255, 99,  132, 0.8)',
+                'rgba(75,  192, 192, 0.8)',
+                'rgba(255, 205, 86,  0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64,  0.8)',
+                'rgba(201, 203, 207, 0.8)',
+            ];
+
+            $datasets   = [];
+            $colorindex = 0;
+            foreach ($series as $name => $values) {
+                $color      = $palette[$colorindex % count($palette)];
+                $datasets[] = [
+                    'label'           => $name,
+                    'data'            => array_values($values),
+                    'backgroundColor' => $color,
+                    'borderColor'     => str_replace('0.8', '1', $color),
+                    'borderWidth'     => 1,
+                ];
+                $colorindex++;
+            }
         }
-
-        // 先頭キーがラベル列。array_shift で取り出し、残りがデータ系列。
-        $labels = array_shift($series);
 
         $width  = property_exists($data, 'width')  ? (int)$data->width  : 900;
         $height = property_exists($data, 'height') ? (int)$data->height : 500;
-
-        // Chart.js 用カラーパレット
-        $palette = [
-            'rgba(54,  162, 235, 0.8)',
-            'rgba(255, 99,  132, 0.8)',
-            'rgba(75,  192, 192, 0.8)',
-            'rgba(255, 205, 86,  0.8)',
-            'rgba(153, 102, 255, 0.8)',
-            'rgba(255, 159, 64,  0.8)',
-            'rgba(201, 203, 207, 0.8)',
-        ];
-
-        // datasets 配列を構築
-        $datasets = [];
-        $colorindex = 0;
-        foreach ($series as $name => $values) {
-            $color = $palette[$colorindex % count($palette)];
-            $datasets[] = [
-                'label'           => $name,
-                'data'            => array_values($values),
-                'backgroundColor' => $color,
-                'borderColor'     => str_replace('0.8', '1', $color),
-                'borderWidth'     => 1,
-            ];
-            $colorindex++;
-        }
 
         // 系列の積み上げ順を逆にする
         if (!empty($data->reversedatasets)) {
@@ -245,8 +274,6 @@ class plugin_bar extends plugin_base {
             unset($ds);
         }
 
-        // 横向きのとき indexAxis: 'y' を指定する。
-        // 積み上げのとき x・y 両軸に stacked: true を指定する。
         $axisoptions = ['beginAtZero' => true];
         if ($stacked) {
             $axisoptions['stacked'] = true;
@@ -272,12 +299,8 @@ class plugin_bar extends plugin_base {
             ],
         ], JSON_UNESCAPED_UNICODE);
 
-        // ユニークな canvas ID（同一ページに複数グラフがあっても衝突しない）
         $canvasid = 'cr_bar_' . $id . '_' . substr(md5(uniqid('', true)), 0, 8);
 
-        // config を data 属性に持たせる。class="cr-chartjs-pending" で未初期化を示す。
-        // require() をここで呼ばず、report.class.php の print_graphs() が
-        // $PAGE->requires->js_call_amd() でまとめて初期化する。
         $html  = '<div style="position:relative; width:' . $width . 'px; height:' . $height . 'px;">';
         $html .= '<canvas id="' . $canvasid . '"'
                . ' data-chartjs-config="' . htmlspecialchars($chartconfig, ENT_QUOTES, 'UTF-8') . '"'
@@ -285,6 +308,122 @@ class plugin_bar extends plugin_base {
         $html .= '</div>';
 
         return $html;
+    }
+
+    /**
+     * 新設計フォーム（5系列+集計）用のデータ構築（lineのbuild_series()と同パターン）
+     */
+    protected function build_series_chartjs(object $data, array $finalreport): array {
+        if (!$finalreport) {
+            return [];
+        }
+
+        [$xidx]       = explode(',', $data->xaxis);
+        $xidx         = (int)$xidx;
+        $nahandling   = !empty($data->nahandling) ? $data->nahandling : 'exclude';
+        $seriesfields = is_array($data->series_field) ? $data->series_field : [];
+        $seriesaggs   = is_array($data->series_agg)   ? $data->series_agg   : [];
+        $serieslabels = is_array($data->series_label) ? $data->series_label : [];
+
+        // X軸ラベルの出現順を収集
+        $labelorder = [];
+        foreach ($finalreport as $r) {
+            $xlabel = (string)($r[$xidx] ?? '');
+            if (!in_array($xlabel, $labelorder, true)) {
+                $labelorder[] = $xlabel;
+            }
+        }
+
+        // 系列ごと・Xラベルごとに値を積み上げる
+        $rawdata = [];
+        foreach ($finalreport as $r) {
+            $xlabel = (string)($r[$xidx] ?? '');
+            foreach ($seriesfields as $si => $sf) {
+                if (empty($sf)) {
+                    continue;
+                }
+                [$colidx] = explode(',', $sf);
+                $value    = $r[(int)$colidx] ?? null;
+
+                if (!is_numeric($value)) {
+                    if ($nahandling === 'zero') {
+                        $value = 0.0;
+                    } else {
+                        continue;
+                    }
+                }
+                $rawdata[$si][$xlabel][] = (float)$value;
+            }
+        }
+
+        $result = ['__labels__' => $labelorder];
+
+        foreach ($seriesfields as $si => $sf) {
+            if (empty($sf)) {
+                continue;
+            }
+            [, $colname] = explode(',', $sf, 2);
+            $agg         = $seriesaggs[$si]   ?? 'none';
+            $label       = !empty($serieslabels[$si])
+                ? $serieslabels[$si]
+                : ($agg !== 'none' ? "$colname ($agg)" : $colname);
+
+            // ラベル重複に連番付与
+            $uniquelabel = $label;
+            $suffix      = 2;
+            while (array_key_exists($uniquelabel, $result)) {
+                $uniquelabel = $label . ' ' . $suffix;
+                $suffix++;
+            }
+
+            $values = [];
+            foreach ($labelorder as $xlabel) {
+                $vals = $rawdata[$si][$xlabel] ?? [];
+                if (empty($vals)) {
+                    $values[] = 0; // barはnullより0の方が自然
+                } elseif ($agg === 'none') {
+                    $values[] = $vals[0];
+                } else {
+                    $values[] = round((float)$this->aggregate($vals, $agg), 4);
+                }
+            }
+            $result[$uniquelabel] = $values;
+        }
+
+        return $result;
+    }
+
+    /**
+     * 値の配列を集計する（line/radar/tiledchartと共通パターン）
+     */
+    protected function aggregate(array $values, string $method) {
+        $n = count($values);
+        if ($n === 0) {
+            return 0;
+        }
+        switch ($method) {
+            case 'count':  return $n;
+            case 'sum':    return array_sum($values);
+            case 'avg':    return array_sum($values) / $n;
+            case 'median': return $this->percentile($values, 50);
+            case 'q1':     return $this->percentile($values, 25);
+            case 'q3':     return $this->percentile($values, 75);
+            case 'min':    return min($values);
+            case 'max':    return max($values);
+            default:       return $values[0];
+        }
+    }
+
+    protected function percentile(array $values, float $pct): float {
+        sort($values);
+        $n   = count($values);
+        $idx = ($pct / 100) * ($n - 1);
+        $lo  = (int)floor($idx);
+        $hi  = (int)ceil($idx);
+        if ($lo === $hi) {
+            return $values[$lo];
+        }
+        return $values[$lo] + ($idx - $lo) * ($values[$hi] - $values[$lo]);
     }
 
     /**
