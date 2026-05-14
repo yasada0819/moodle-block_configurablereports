@@ -116,17 +116,45 @@ if ($compclass->plugins) {
             $currentplugins[] = $e['pluginname'];
         }
     }
+    // 本家のプラグイン一覧を取得.
     $plugins = get_list_of_plugins('blocks/configurable_reports/components/' . $comp);
+
+    // Extension が有効な場合、Extension側のプラグインも追加（重複は除外）.
+    if (get_config('block_configurable_reports', 'useextension')) {
+        $extname = get_config('block_configurable_reports', 'activeextension');
+        if (empty($extname)) {
+            $extname = 'extension';
+        }
+        $flagmap = ['plot' => 'use_plot', 'permissions' => 'use_permissions', 'template' => 'use_template'];
+        $flag = $flagmap[$comp] ?? null;
+        if ($flag && get_config('block_configurablereports_' . $extname, $flag)) {
+            $extcompdir = $CFG->dirroot . '/blocks/configurablereports_' . $extname . '/components/' . $comp;
+            if (is_dir($extcompdir)) {
+                $extplugins = get_list_of_plugins('blocks/configurablereports_' . $extname . '/components/' . $comp);
+                foreach ($extplugins as $ep) {
+                    if (!in_array($ep, $plugins)) {
+                        $plugins[] = $ep;
+                    }
+                }
+            }
+        }
+    }
+
     $optionsplugins = [];
     foreach ($plugins as $p) {
-        require_once($CFG->dirroot . '/blocks/configurable_reports/components/' . $comp . '/' . $p . '/plugin.class.php');
+        // report.class.php の get_component_path() 経由でパスを解決（Extension優先）.
+        $pluginfile = report_base::get_component_path($comp, $p) . '/plugin.class.php';
+        if (!file_exists($pluginfile)) {
+            continue;
+        }
+        require_once($pluginfile);
         $pluginclassname = 'plugin_' . $p;
         $pluginclass = new $pluginclassname($report);
         if (in_array($report->type, $pluginclass->reporttypes)) {
             if ($pluginclass->unique && in_array($p, $currentplugins)) {
                 continue;
             }
-            $optionsplugins[$p] = get_string($p, 'block_configurable_reports');
+            $optionsplugins[$p] = $pluginclass->fullname ?? get_string($p, 'block_configurable_reports');
         }
     }
     asort($optionsplugins);
