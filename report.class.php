@@ -371,9 +371,8 @@ abstract class report_base {
         }
 
         // Chart.js グラフが 1 つ以上あるときだけ AMD モジュールを登録する。
-        // js_call_amd() は Moodle が適切なタイミング（RequireJS ロード後）に
-        // initAll() を呼び出すため、require is not defined エラーが発生しない。
-        if ($haschartjs) {
+        // Extension が有効な場合は renderer.php 側で登録するためここではスキップ。
+        if ($haschartjs && !get_config('block_configurable_reports', 'useextension')) {
             $PAGE->requires->js_call_amd('block_configurable_reports/chartrenderer', 'initAll');
         }
 
@@ -1032,7 +1031,7 @@ abstract class report_base {
                     break;
                 }
             }
-            if ($haschartjs) {
+            if ($haschartjs && !get_config('block_configurable_reports', 'useextension')) {
                 global $PAGE;
                 $PAGE->requires->js_call_amd('block_configurable_reports/chartrenderer', 'initAll');
             }
@@ -1202,7 +1201,7 @@ abstract class report_base {
                     break;
                 }
             }
-            if ($haschartjs) {
+            if ($haschartjs && !get_config('block_configurable_reports', 'useextension')) {
                 global $PAGE;
                 $PAGE->requires->js_call_amd('block_configurable_reports/chartrenderer', 'initAll');
             }
