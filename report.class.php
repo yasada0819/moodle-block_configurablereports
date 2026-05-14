@@ -296,20 +296,43 @@ abstract class report_base {
     /**
      * print_graphs
      *
+     * グラフライブラリの設定に応じて出力を切り替える。
+     *   - pChart モード : execute() が返す URL を <img src="..."> として出力（既存動作）
+     *   - Chart.js モード: execute() が返す HTML 文字列をそのまま出力し、
+     *                      $PAGE->requires->js_call_amd() で chartrenderer を呼ぶ
+     *
      * @param bool $return
      * @return string|true
      */
     public function print_graphs(bool $return = false) {
+        global $PAGE;
+
         $output = '';
         $graphs = $this->get_graphs($this->finalreport->table->data);
+        $haschartjs = false;
 
         if ($graphs) {
             foreach ($graphs as $g) {
                 $output .= '<div class="centerpara">';
-                $output .= ' <img src="' . $g . '" alt="' . s($this->config->name) . '"><br />';
+                if (str_starts_with(trim($g), '<')) {
+                    // Chart.js モード: execute() が HTML 文字列を返している
+                    $output .= $g . '<br />';
+                    $haschartjs = true;
+                } else {
+                    // pChart モード: execute() が URL を返している
+                    $output .= '<img src="' . $g . '" alt="' . s($this->config->name) . '"><br />';
+                }
                 $output .= '</div>';
             }
         }
+
+        // Chart.js グラフが 1 つ以上あるときだけ AMD モジュールを登録する。
+        // js_call_amd() は Moodle が適切なタイミング（RequireJS ロード後）に
+        // initAll() を呼び出すため、require is not defined エラーが発生しない。
+        if ($haschartjs) {
+            $PAGE->requires->js_call_amd('block_configurable_reports/chartrenderer', 'initAll');
+        }
+
         if ($return) {
             return $output;
         }
@@ -775,8 +798,79 @@ abstract class report_base {
      * @param moodle_page $moodlepage
      * @return void
      */
+    /**
+     * print_template
+     *
+     * ##graphs## および ##graph:N## プレースホルダーを含むテンプレートを処理する。
+     *
+     * Chart.js が生成する <canvas> タグは format_text() の HTML Purifier で
+     * 削除されてしまうため、グラフ HTML をいったん HTMLコメントトークンに退避し、
+     * format_text() 通過後にトークンを実際の HTML に戻す方式を採用している。
+     *
+     * 対応プレースホルダー（header / footer のみ。record 部分は対象外）：
+     *   ##graphs##    : 全グラフを縦1列で出力（従来動作）
+     *   ##graph:0##   : 0番目のグラフのみ出力
+     *   ##graph:1##   : 1番目のグラフのみ出力
+     *   ##graph:N##   : N番目のグラフのみ出力（動的に対応）
+     *
+     * @param object $config
+     * @param moodle_page $moodlepage
+     * @return void
+     */
+    /**
+     * print_template
+     *
+     * ##graphs## および ##graph:N## プレースホルダーを含むテンプレートを処理する。
+     *
+     * グラフHTMLは format_text() / HTML Purifier で <canvas> が除去されるため、
+     * preg_split でプレースホルダーを区切りにテンプレートを分割し、
+     * グラフ部分だけ format_text() を通さずにそのまま出力する。
+     *
+     * 対応プレースホルダー（header / footer のみ。record 部分は対象外）：
+     *   ##graphs##    : 全グラフを縦1列で出力（従来動作）
+     *   ##graph:0##   : 0番目のグラフのみ出力
+     *   ##graph:N##   : N番目のグラフのみ出力（動的に対応）
+     *
+     * @param object $config
+     * @param moodle_page $moodlepage
+     * @return void
+     */
+    /**
+     * print_template
+     *
+     * templateeditor 設定と config->editormode に応じて
+     * classic / gui の処理を振り分ける。
+     *
+     * @param object $config
+     * @param moodle_page $moodlepage
+     * @return void
+     */
     public function print_template($config, moodle_page $moodlepage): void {
-        global $OUTPUT;
+        $templateeditor = get_config('block_configurable_reports', 'templateeditor');
+
+        if ($templateeditor === 'gui'
+            && !empty($config->editormode)
+            && $config->editormode === 'gui'
+            && !empty($config->gui_layout)) {
+            $this->print_template_gui($config, $moodlepage);
+        } else {
+            $this->print_template_classic($config, $moodlepage);
+        }
+    }
+
+    /**
+     * print_template_classic
+     *
+     * 従来のテキストエリアで作成されたテンプレートを処理する。
+     * ##graphs## および ##graph:N## プレースホルダーを含む
+     * header / footer を preg_split で分割し、グラフ部分だけ
+     * format_text() を通さずに出力する。
+     *
+     * @param object $config
+     * @param moodle_page $moodlepage
+     * @return void
+     */
+    public function print_template_classic($config, moodle_page $moodlepage): void {
 
         $pagecontents = [];
         $pagecontents['header'] = (isset($config->header) && $config->header) ? $config->header : '';
@@ -825,10 +919,31 @@ abstract class report_base {
             $pagination = $OUTPUT->render($pagingbar);
         }
 
+        // --- グラフHTML を事前に生成 ---
+        // グラフHTMLはformat_text()を通さないため、
+        // プレースホルダーをキーにしたマップとして保持する。
+        $graphmap = [];
+
+        // 全グラフまとめて（##graphs##用）
+        $graphmap['##graphs##'] = $this->print_graphs(true);
+
+        // 個別グラフ（##graph:N##用）動的に生成
+        $allgraphs = $this->get_graphs($this->finalreport->table->data);
+        foreach ($allgraphs as $n => $g) {
+            $graphhtml  = '<div class="centerpara">';
+            if (str_starts_with(trim($g), '<')) {
+                $graphhtml .= $g . '<br />';
+            } else {
+                $graphhtml .= '<img src="' . $g . '" alt="' . s($this->config->name) . '"><br />';
+            }
+            $graphhtml .= '</div>';
+            $graphmap['##graph:' . ($n + 1) . '##'] = $graphhtml;
+        }
+
+        // グラフ以外のプレースホルダーを先に展開
         $search = [
             '##reportname##',
             '##reportsummary##',
-            '##graphs##',
             '##exportoptions##',
             '##calculationstable##',
             '##pagination##',
@@ -836,7 +951,6 @@ abstract class report_base {
         $replace = [
             format_string($this->config->name),
             format_text($this->config->summary),
-            $this->print_graphs(true),
             $this->print_export_options(true),
             $calculations,
             $pagination,
@@ -853,47 +967,87 @@ abstract class report_base {
         }
         $this->print_filters();
 
+        // Chart.js AMD モジュールを登録
+        if (!empty($allgraphs)) {
+            $haschartjs = false;
+            foreach ($allgraphs as $g) {
+                if (str_starts_with(trim($g), '<')) {
+                    $haschartjs = true;
+                    break;
+                }
+            }
+            if ($haschartjs) {
+                global $PAGE;
+                $PAGE->requires->js_call_amd('block_configurable_reports/chartrenderer', 'initAll');
+            }
+        }
+
         echo "<div id=\"printablediv\">\n";
-        // Print the header.
-        if (is_array($pagecontents['header'])) {
-            echo format_text($pagecontents['header']['text'], $pagecontents['header']['format']);
-        } else {
-            echo format_text($pagecontents['header'], FORMAT_HTML);
-        }
 
-        if ($this->config->displaytotalrecords) {
-            $a = new \stdClass();
-            $a->totalrecords = $this->totalrecords;
-            echo \html_writer::tag('div', get_string('totalrecords', 'block_configurable_reports', $a), array('id' => 'totalrecords'));
-        }
-
-        if ($recordtpl) {
-            if ($this->config->pagination) {
-                $page = optional_param('page', 0, PARAM_INT);
-                $this->totalrecords = count($this->finalreport->table->data);
-                $this->finalreport->table->data =
-                    array_slice($this->finalreport->table->data, $page * $this->config->pagination, $this->config->pagination);
+        // header と footer をグラフプレースホルダーで分割して出力
+        foreach (['header', 'footer'] as $section) {
+            if (!$pagecontents[$section]) {
+                if ($section === 'footer') {
+                    // footer が空でも処理を続ける
+                }
+                continue;
             }
 
-            foreach ($this->finalreport->table->data as $r) {
-                if (is_array($recordtpl)) {
-                    $recordtext = $recordtpl['text'];
+            $text = is_array($pagecontents[$section])
+                ? $pagecontents[$section]['text']
+                : $pagecontents[$section];
+            $fmt = is_array($pagecontents[$section])
+                ? $pagecontents[$section]['format']
+                : FORMAT_HTML;
+
+            // グラフプレースホルダーのパターンで分割
+            $pattern = '/(##graphs##|##graph:\d+##)/';
+            $parts   = preg_split($pattern, $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+            if ($section === 'header' && $this->config->displaytotalrecords) {
+                // totalrecords は header の直後に出すので、分割前に追加
+            }
+
+            foreach ($parts as $part) {
+                if (isset($graphmap[$part])) {
+                    // グラフプレースホルダー → format_text()を通さずそのまま出力
+                    echo $graphmap[$part];
                 } else {
-                    $recordtext = $recordtpl;
+                    // 通常テキスト → format_text()でサニタイズして出力
+                    echo format_text($part, $fmt);
                 }
-
-                foreach ($this->finalreport->table->head as $key => $c) {
-                    $recordtext = str_ireplace("[[$c]]", $r[$key], $recordtext);
-                }
-                echo format_text($recordtext, FORMAT_HTML);
             }
-        }
 
-        // Print the footer.
-        if (is_array($pagecontents['footer'])) {
-            echo format_text($pagecontents['footer']['text'], $pagecontents['footer']['format']);
-        } else {
-            echo format_text($pagecontents['footer'], FORMAT_HTML);
+            if ($section === 'header') {
+                if ($this->config->displaytotalrecords) {
+                    $a = new \stdClass();
+                    $a->totalrecords = $this->totalrecords;
+                    echo \html_writer::tag('div', get_string('totalrecords', 'block_configurable_reports', $a), ['id' => 'totalrecords']);
+                }
+
+                // レコード部分を出力
+                if ($recordtpl) {
+                    if ($this->config->pagination) {
+                        $page = optional_param('page', 0, PARAM_INT);
+                        $this->totalrecords = count($this->finalreport->table->data);
+                        $this->finalreport->table->data =
+                            array_slice($this->finalreport->table->data, $page * $this->config->pagination, $this->config->pagination);
+                    }
+
+                    foreach ($this->finalreport->table->data as $r) {
+                        if (is_array($recordtpl)) {
+                            $recordtext = $recordtpl['text'];
+                        } else {
+                            $recordtext = $recordtpl;
+                        }
+
+                        foreach ($this->finalreport->table->head as $key => $c) {
+                            $recordtext = str_ireplace("[[$c]]", $r[$key], $recordtext);
+                        }
+                        echo format_text($recordtext, FORMAT_HTML);
+                    }
+                }
+            }
         }
 
         echo "</div>\n";
@@ -905,12 +1059,156 @@ abstract class report_base {
         }
     }
 
+
     /**
-     * print_report_page
+     * print_template_gui
      *
+     * GUIビルダーで作成されたテンプレート（JSON）を解釈してHTMLを出力する。
+     *
+     * JSON構造：
+     * {
+     *   "enabled": 1,
+     *   "editormode": "gui",
+     *   "rows": [
+     *     {
+     *       "cols": 2,
+     *       "cells": [
+     *         {"type": "placeholder", "value": "##graph:0##"},
+     *         {"type": "placeholder", "value": "##graph:1##"}
+     *       ]
+     *     },
+     *     {
+     *       "cols": 1,
+     *       "cells": [
+     *         {"type": "html", "value": "<h2>詳細データ</h2>"}
+     *       ]
+     *     }
+     *   ]
+     * }
+     *
+     * グラフHTMLは format_text() を通さずにそのまま出力する。
+     * HTMLテキストセルは format_text() でサニタイズして出力する。
+     *
+     * @param object $config
      * @param moodle_page $moodlepage
-     * @return true|void
+     * @return void
      */
+    public function print_template_gui($config, moodle_page $moodlepage): void {
+        // レイアウトJSONをデコード
+        $layout = json_decode($config->gui_layout, false);
+        if (empty($layout) || empty($layout->rows)) {
+            return;
+        }
+
+        // グラフHTMLを事前に生成（##graphs## および ##graph:N## 用）
+        $graphmap = [];
+        $graphmap['##graphs##'] = $this->print_graphs(true);
+
+        $allgraphs = $this->get_graphs($this->finalreport->table->data);
+        foreach ($allgraphs as $n => $g) {
+            $graphhtml = '<div class="centerpara">';
+            if (str_starts_with(trim($g), '<')) {
+                $graphhtml .= $g . '<br />';
+            } else {
+                $graphhtml .= '<img src="' . $g . '" alt="' . s($this->config->name) . '"><br />';
+            }
+            $graphhtml .= '</div>';
+            $graphmap['##graph:' . ($n + 1) . '##'] = $graphhtml;
+        }
+
+        // ##reporttable## 用
+        // cr_print_table() は echo するので ob_start() で文字列として取得する
+        $tablehtml = '';
+        if (!empty($this->finalreport->table->data)) {
+            ob_start();
+            cr_print_table($this->finalreport->table);
+            $tablehtml = ob_get_clean();
+        }
+        $graphmap['##reporttable##'] = $tablehtml;
+
+        // ##calculationstable## 用
+        $calcshtml = '';
+        if (!empty($this->finalreport->calcs->data[0])) {
+            $calcshtml = html_writer::table($this->finalreport->calcs);
+        }
+        $graphmap['##calculationstable##'] = $calcshtml;
+
+        // ##reportname## / ##reportsummary##
+        $graphmap['##reportname##']    = format_string($this->config->name);
+        $graphmap['##reportsummary##'] = format_text($this->config->summary);
+
+        // Chart.js AMD モジュールを登録
+        if (!empty($allgraphs)) {
+            $haschartjs = false;
+            foreach ($allgraphs as $g) {
+                if (str_starts_with(trim($g), '<')) {
+                    $haschartjs = true;
+                    break;
+                }
+            }
+            if ($haschartjs) {
+                global $PAGE;
+                $PAGE->requires->js_call_amd('block_configurable_reports/chartrenderer', 'initAll');
+            }
+        }
+
+        if ($this->config->jsordering) {
+            $this->add_jsordering($moodlepage);
+        }
+        $this->print_filters();
+
+        // GUIモード用：グラフのcanvasをカラム幅に追従させる
+        // 各グラフプラグインは固定px幅でdivを生成するが、
+        // CSSでwidth/heightを上書きしてレスポンシブに動作させる。
+        echo '<style>
+#printablediv canvas.cr-chartjs-pending,
+#printablediv canvas[data-chartjs-config] {
+    width: 100% !important;
+    height: auto !important;
+}
+#printablediv [style*="position:relative"] {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 300px;
+}
+</style>' . "\n";
+
+        echo '<div id="printablediv">' . "\n";
+
+        // 行ごとに出力
+        foreach ($layout->rows as $row) {
+            $cols = (int)($row->cols ?? 1);
+            $cells = $row->cells ?? [];
+
+            echo '<div style="display:flex; gap:16px; margin-bottom:16px;">' . "\n";
+
+            foreach ($cells as $cell) {
+                $celltype  = $cell->type  ?? 'html';
+                $cellvalue = $cell->value ?? '';
+
+                $cellwidth = 'calc(' . (100 / $cols) . '% - ' . (16 * ($cols - 1) / $cols) . 'px)';
+                echo '<div style="flex:0 0 ' . $cellwidth . '; min-width:0;">' . "\n";
+
+                if ($celltype === 'placeholder' && isset($graphmap[$cellvalue])) {
+                    // プレースホルダー → format_text()を通さずそのまま出力
+                    echo $graphmap[$cellvalue];
+                } elseif ($celltype === 'placeholder') {
+                    // 未知のプレースホルダーはそのまま表示（デバッグ用）
+                    echo htmlspecialchars($cellvalue);
+                } else {
+                    // HTMLテキスト → format_text()でサニタイズして出力
+                    echo format_text($cellvalue, FORMAT_HTML);
+                }
+
+                echo '</div>' . "\n";
+            }
+
+            echo '</div>' . "\n";
+        }
+
+        echo '</div>' . "\n";
+    }
+
     public function print_report_page(moodle_page $moodlepage) {
         global $OUTPUT;
 
@@ -919,8 +1217,19 @@ abstract class report_base {
         }
         $components = cr_unserialize($this->config->components);
 
-        $template = (isset($components['template']['config']) && $components['template']['config']->enabled &&
-            $components['template']['config']->record) ? $components['template']['config'] : false;
+        // テンプレートの有効判定：
+        //   classic モード : enabled=1 かつ record が存在する
+        //   gui モード     : enabled=1 かつ gui_layout が存在する
+        $templateconfig = $components['template']['config'] ?? null;
+        $template = false;
+        if ($templateconfig && !empty($templateconfig->enabled)) {
+            $isgui = !empty($templateconfig->editormode) && $templateconfig->editormode === 'gui';
+            if ($isgui && !empty($templateconfig->gui_layout)) {
+                $template = $templateconfig;
+            } else if (!$isgui && !empty($templateconfig->record)) {
+                $template = $templateconfig;
+            }
+        }
 
         if ($template) {
             $this->print_template($template, $moodlepage);

@@ -125,4 +125,70 @@ if ($ADMIN->fulltree) {
             get_string('allowedsqlusersinfo', 'block_configurable_reports'), '', PARAM_TEXT
         )
     );
+
+    $settings->add(new admin_setting_configselect(
+    'block_configurable_reports/graphlibrary',
+    get_string('graphlibrary', 'block_configurable_reports'),
+    get_string('graphlibrary_desc', 'block_configurable_reports'),
+    'pchart',
+    [
+        'pchart'  => 'pChart (default)',
+        'chartjs' => 'Chart.js',
+    ]
+    ));
+
+    $settings->add(new admin_setting_configselect(
+    'block_configurable_reports/templateeditor',
+    get_string('templateeditor', 'block_configurable_reports'),
+    get_string('templateeditor_desc', 'block_configurable_reports'),
+    'classic',
+    [
+        'classic' => get_string('templateeditor_classic', 'block_configurable_reports'),
+        'gui'     => get_string('templateeditor_gui',     'block_configurable_reports'),
+    ]
+    ));
+
+    // --- Extension ---
+
+    $settings->add(new admin_setting_heading(
+        'block_configurable_reports/heading_extension',
+        get_string('heading_extension', 'block_configurable_reports'),
+        get_string('heading_extension_desc', 'block_configurable_reports')
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'block_configurable_reports/useextension',
+        get_string('useextension', 'block_configurable_reports'),
+        get_string('useextension_desc', 'block_configurable_reports'),
+        0
+    ));
+
+    // インストール済みのExtensionを検出してセレクタを表示（2個以上のときのみ）.
+    $extensiondirs = glob($CFG->dirroot . '/blocks/configurablereports_*', GLOB_ONLYDIR);
+    $extensionoptions = [];
+    foreach ($extensiondirs as $dir) {
+        $name = basename($dir);
+        $shortname = substr($name, strlen('configurablereports_'));
+        $extensionoptions[$shortname] = $shortname;
+    }
+    if (count($extensionoptions) >= 2) {
+        $settings->add(new admin_setting_configselect(
+            'block_configurable_reports/activeextension',
+            get_string('activeextension', 'block_configurable_reports'),
+            get_string('activeextension_desc', 'block_configurable_reports'),
+            'extension',
+            $extensionoptions
+        ));
+    }
+
+    // Extension自体の設定（use_plot / use_template / use_permissions等）を読み込む.
+    $extname = get_config('block_configurable_reports', 'activeextension');
+    if (empty($extname)) {
+        $extname = 'extension';
+    }
+    $extsettingsfile = $CFG->dirroot . '/blocks/configurablereports_' . $extname . '/settings.php';
+    if (file_exists($extsettingsfile)) {
+        include($extsettingsfile);
+    }
+
 }

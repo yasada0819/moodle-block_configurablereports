@@ -585,3 +585,178 @@ be disabled in your config.php file by setting $CFG->block_configurable_reports_
 $string['csvdelimiter'] = 'CSV delimiter';
 $string['csvdelimiterinfo'] = 'CSV delimiter: "colon" for ":", "comma" for ",", semicolon for ";",  "tab" for "\t" and "cfg" for character configured in "CFG->CSV_DELIMITER" of the config.php file.';
 
+
+// --- coursecustomfield permission plugin ---
+$string['coursecustomfield']                   = 'Course custom field value';
+$string['coursecustomfield_shortname']         = 'Custom field';
+$string['coursecustomfield_value']             = 'Expected value';
+$string['coursecustomfield_value_help']        = 'Enter the value to match. For checkboxes, use 1 (checked) or 0 (unchecked). For select fields, use the option value (not the label).';
+$string['coursecustomfield_error_field']       = 'The specified custom field shortname does not exist.';
+ 
+
+// ChartJS Strings.
+$string['graphlibrary'] = 'Graph library';
+$string['graphlibrary_desc'] = 'Select the library used to render graphs. Chart.js renders interactively in the browser; pChart renders as a PNG image (legacy).';
+
+// template editor Strings.
+$string['templateeditor']         = 'Template editor';
+$string['templateeditor_desc']    = 'Select the template editor mode.';
+$string['templateeditor_classic'] = 'Classic (text editor)';
+$string['templateeditor_gui']     = 'GUI builder';
+
+// Chart.js (bar / line / pie)
+
+$string['head_chartjs_options'] = 'Chart.js options';
+
+
+$string['bardirection']            = 'Bar direction';
+$string['bardirection_help']       = 'Select the direction of the bars.';
+$string['bardirection_vertical']   = 'Vertical';
+$string['bardirection_horizontal'] = 'Horizontal';
+$string['bargrouping']             = 'Grouping';
+$string['bargrouping_help']        = 'Select how multiple datasets are displayed.';
+$string['bargrouping_grouped']     = 'Grouped (side by side)';
+$string['bargrouping_stacked']     = 'Stacked';
+
+$string['reversedatasets'] = 'Reverse dataset order';
+$string['reversedatasets_help'] = 'Reverse the stacking order of datasets.';
+
+$string['histogram']                   = 'Histogram mode';
+$string['histogram_help']              = 'Remove gaps between bars (useful for frequency distributions).';
+
+$string['line_smooth']       = 'Smooth curves';
+$string['line_smooth_help']  = 'Display lines as smooth curves instead of straight segments.';
+$string['line_filled']       = 'Fill area';
+$string['line_filled_help']  = 'Fill the area below each line.';
+$string['line_serieid']    = 'Y1 group column (optional)';
+$string['line_serieid2']   = 'Y2 group column (optional)';
+$string['line_yaxis2']     = 'Y2 axis column (optional)';
+$string['line_dualaxis']      = 'Split Y axes';
+$string['line_dualaxis_help'] = 'Display Y1 on the left axis and Y2 on the right axis. Useful when the two series have very different value ranges.';
+$string['line_series_field']  = 'Column';
+$string['line_series_agg']    = 'Aggregation';
+$string['line_series_label']  = 'Legend label (optional)';
+$string['line_series_y2']     = 'Y2 axis';
+$string['line_series_row']    = 'Series {$a}';
+
+$string['pie_doughnut']      = 'Doughnut style';
+$string['pie_doughnut_help'] = 'Display as a doughnut chart instead of a pie chart.';
+
+// Chart.js (bubble)
+
+$string['bubble_label_field']      = 'Label column (optional)';
+$string['bubble_label_field_help'] = 'Select a column to group and color-code bubbles. Select "None" for single color.';
+$string['bubble_label_none']       = 'None (single color)';
+$string['bubble_x_field']          = 'X axis column';
+$string['bubble_x_field_help']     = 'Column for the X axis values (must be numeric).';
+$string['bubble_y_field']          = 'Y axis column';
+$string['bubble_y_field_help']     = 'Column for the Y axis values (must be numeric).';
+$string['bubble_r_field']          = 'Bubble size column';
+$string['bubble_r_field_help']     = 'Column for the bubble size (must be numeric).';
+$string['bubble_rscaling']         = 'Bubble size scaling';
+$string['bubble_rscaling_help']    = 'Auto: normalizes the largest value to the maximum size. Manual: uses the raw value as pixels directly.';
+$string['bubble_rscaling_auto']    = 'Auto (normalize to max size)';
+$string['bubble_rscaling_manual']  = 'Manual (use raw value as pixels)';
+$string['bubble_maxbubblesize']    = 'Maximum bubble size (px)';
+$string['bubble_maxbubblesize_help'] = 'Maximum bubble radius in pixels when using auto scaling. Default: 40.';
+
+// Chart.js (radar)
+
+$string['radar_scalemin']      = 'Scale minimum';
+$string['radar_scalemin_help'] = 'Minimum value of the radar scale. Leave blank for auto.';
+$string['radar_scalemax']      = 'Scale maximum';
+$string['radar_scalemax_help'] = 'Maximum value of the radar scale. Leave blank for auto. e.g. 100 for percentage scores.';
+
+$string['radar_series_field'] = 'Column';
+$string['radar_series_agg']   = 'Aggregation';
+$string['radar_series_label'] = 'Legend label (optional)';
+$string['radar_series_add']   = 'Add series';
+$string['radar_series_row'] = 'Series {$a}';
+
+
+// Chart.js (combo)
+
+$string['combo_bar_fields']      = 'Bar chart series';
+$string['combo_bar_fields_help'] = 'Select one or more columns to display as bar charts.';
+$string['combo_line_fields']     = 'Line chart series';
+$string['combo_line_fields_help'] = 'Select one or more columns to display as line charts.';
+$string['combo_bargrouping']     = 'Bar grouping';
+$string['combo_bargrouping_help'] = 'Select how multiple bar series are displayed.';
+$string['combo_dualaxis']        = 'Dual Y axis';
+$string['combo_dualaxis_help']   = 'Use separate Y axes for bar (left) and line (right) series. Useful when the value ranges differ significantly.';
+
+// Chart.js (tield)
+
+$string['tiledchart_type_area']     = 'Area';
+$string['tiledchart_type_pie']      = 'Pie';
+$string['tiledchart_type_doughnut'] = 'Doughnut';
+$string['tiledchart_type_radar']    = 'Radar';
+$string['tiledchart_col1']          = 'Column 1 (X axis / label / axis name)';
+$string['tiledchart_col1_help']     = 'bar/line/area: X axis label. pie/doughnut: slice label. radar: axis name.';
+$string['tiledchart_col2']          = 'Column 2 (Y axis / value)';
+$string['tiledchart_col2_help']     = 'The value for all chart types: Y axis value, slice size, or axis score.';
+
+
+// pivotchart
+ 
+$string['pivotchart']                  = 'Pivot chart';
+$string['pivotchart_x_field']          = 'X-axis column';
+$string['pivotchart_x_field_help']     = 'Column whose distinct values become the X-axis labels (e.g. student name, date).';
+$string['pivotchart_series_field']     = 'Series column (colour)';
+$string['pivotchart_series_field_help']= 'Column whose distinct values become the series (colours), e.g. subject, category. Each unique value in this column becomes one bar/line colour.';
+$string['pivotchart_value_field']      = 'Value column';
+$string['pivotchart_value_field_help'] = 'Numeric column to plot on the Y-axis.';
+$string['pivotchart_value_agg']        = 'Aggregation';
+$string['pivotchart_value_agg_help']   = 'How to aggregate when multiple rows share the same X / series combination. Use "Sum" for totals, "Average" for means, "Count" to count rows regardless of the value column.';
+ 
+// tiledpivot 
+
+$string['tiledpivot']                   = 'Tiled pivot chart';
+$string['tiledpivot_tile_field']        = 'Tile column';
+$string['tiledpivot_tile_field_help']   = 'Column whose distinct values determine how tiles are split (e.g. year, class). Each unique value becomes one tile.';
+
+// Tiled scatter / bubble
+$string['tiledscatter_r_field']        = 'Bubble size column (optional)';
+$string['tiledscatter_r_field_help']   = 'Select a numeric column to use as bubble size. Leave as "none" to display as a scatter plot with fixed point size.';
+$string['tiledscatter_rscale']         = 'Bubble size scaling';
+$string['tiledscatter_rscale_auto']    = 'Auto (scale to max)';
+$string['tiledscatter_rscale_manual']  = 'Manual (use raw value)';
+$string['tiledscatter_rdefault']       = 'Default point / bubble size';
+$string['tiledscatter_rdefault_help']  = 'Point size when no bubble column is selected. Also used as the maximum bubble size in auto scaling.';
+
+
+// ChartJS aggregagtion
+
+$string['head_aggregation']      = 'Aggregation';
+$string['aggregation']           = 'Aggregation method';
+$string['aggregation_help']      = 'Select how to aggregate multiple values for the same label. Select "None" to use raw values.';
+$string['aggregation_none']      = 'None (raw values)';
+$string['aggregation_count']     = 'Count';
+$string['aggregation_sum']       = 'Sum';
+$string['aggregation_avg']       = 'Average';
+$string['aggregation_min']       = 'Min';
+$string['aggregation_q1']        = 'Q1 (25th percentile)';
+$string['aggregation_median']    = 'Median (Q2)';
+$string['aggregation_q3']        = 'Q3 (75th percentile)';
+$string['aggregation_max']       = 'Max';
+$string['nahandling']            = 'Handle missing values (NA)';
+$string['nahandling_help']       = 'How to treat non-numeric or missing values when aggregating.';
+$string['nahandling_exclude']    = 'Exclude from aggregation (default)';
+$string['nahandling_zero']       = 'Treat as zero';
+
+
+// template editor
+
+$string['template_ph_graphs']     = 'All graphs';
+$string['template_ph_table']      = 'Report table';
+$string['template_ph_reportname'] = 'Report name';
+$string['template_ph_pagination'] = 'Pagination';
+$string['template_ph_export']     = 'Export options';
+$string['template_gui_loading']   = 'Loading GUI builder...';
+// --- Extension ---
+$string['heading_extension']      = 'Graph engine extension';
+$string['heading_extension_desc'] = 'Install a separate Extension plugin (e.g. block_configurablereports_extension) to use Chart.js graphs, the GUI template builder, and additional permission plugins.';
+$string['useextension']           = 'Enable Extension';
+$string['useextension_desc']      = 'When enabled, an installed Extension plugin will be used for graph rendering, template editing, and permission plugins. Falls back to built-in pChart if no Extension is found.';
+$string['activeextension']        = 'Active extension';
+$string['activeextension_desc']   = 'Select which Extension to use when multiple are installed.';
