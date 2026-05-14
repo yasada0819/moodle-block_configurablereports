@@ -143,6 +143,51 @@ abstract class report_base {
     }
 
     /**
+     * Get component path
+     *
+     * useextension が ON で、対応するカテゴリ（plot/permissions/template）も
+     * Extension側で有効になっている場合は Extension のパスを返す。
+     * Extension ディレクトリが存在しない場合、またはカテゴリが無効の場合は
+     * 本家のパスにフォールバックする。
+     *
+     * @param string $type       'plot' | 'permissions' | 'template'
+     * @param string $pluginname プラグイン名（例: 'bar', 'coursecustomfield'）
+     * @return string            plugin.class.php が格納されているディレクトリの絶対パス
+     */
+    private function get_component_path(string $type, string $pluginname): string {
+        global $CFG;
+
+        $base = $CFG->dirroot . '/blocks/configurable_reports';
+
+        if (get_config('block_configurable_reports', 'useextension')) {
+            $extname = get_config('block_configurable_reports', 'activeextension');
+            if (empty($extname)) {
+                $extname = 'extension';
+            }
+
+            // カテゴリごとの有効フラグを確認.
+            $flagmap = [
+                'plot'        => 'use_plot',
+                'permissions' => 'use_permissions',
+                'template'    => 'use_template',
+            ];
+            $flag = $flagmap[$type] ?? null;
+            $enabled = $flag && get_config('block_configurablereports_' . $extname, $flag);
+
+            if ($enabled) {
+                $extpath = $CFG->dirroot . '/blocks/configurablereports_' . $extname
+                         . '/components/' . $type . '/' . $pluginname;
+                if (is_dir($extpath)) {
+                    return $extpath;
+                }
+            }
+        }
+
+        // Fallback: 本家の pChart / 組み込みプラグイン.
+        return $base . '/components/' . $type . '/' . $pluginname;
+    }
+
+    /**
      * Check permissions
      *
      * @param int $userid
@@ -175,8 +220,7 @@ abstract class report_base {
         $cond = [];
         foreach ($permissions['elements'] as $p) {
 
-            require_once($CFG->dirroot . '/blocks/configurable_reports/components/permissions/' . $p['pluginname'] .
-                '/plugin.class.php');
+            require_once($this->get_component_path('permissions', $p['pluginname']) . '/plugin.class.php');
             $classname = 'plugin_' . $p['pluginname'];
             $class = new $classname($this->config);
             $cond[$i] = $class->execute($userid, $context, $p['formdata']);
@@ -458,8 +502,7 @@ abstract class report_base {
             $series = [];
 
             foreach ($graphs as $g) {
-                require_once($CFG->dirroot . '/blocks/configurable_reports/components/plot/' . $g['pluginname'] .
-                    '/plugin.class.php');
+                require_once($this->get_component_path('plot', $g['pluginname']) . '/plugin.class.php');
                 $classname = 'plugin_' . $g['pluginname'];
                 $class = new $classname($this->config);
                 $reportgraphs[] = $class->execute($g['id'], $g['formdata'], $finalreport);
@@ -846,6 +889,18 @@ abstract class report_base {
      * @return void
      */
     public function print_template($config, moodle_page $moodlepage): void {
+        global $CFG;
+
+        // Extension の template renderer に委譲（use_template=ON かつ renderer.php が存在する場合）.
+        $rendererpath = $this->get_component_path('template', 'renderer') . '/renderer.php';
+        if (file_exists($rendererpath)) {
+            require_once($rendererpath);
+            if (function_exists('print_template_extension')) {
+                print_template_extension($this, $config, $moodlepage);
+                return;
+            }
+        }
+
         $templateeditor = get_config('block_configurable_reports', 'templateeditor');
 
         if ($templateeditor === 'gui'
