@@ -175,9 +175,8 @@ abstract class report_base {
         $cond = [];
         foreach ($permissions['elements'] as $p) {
 
-            require_once($CFG->dirroot . '/blocks/configurable_reports/components/permissions/' . $p['pluginname'] .
-                '/plugin.class.php');
-            $classname = 'plugin_' . $p['pluginname'];
+            require_once($this->get_component_path('permissions', $p['pluginname']) . '/plugin.class.php');
+                $classname = 'plugin_' . $p['pluginname'];
             $class = new $classname($this->config);
             $cond[$i] = $class->execute($userid, $context, $p['formdata']);
             $i++;
@@ -291,6 +290,44 @@ abstract class report_base {
         if ($this->filterform !== null) {
             $this->filterform->display();
         }
+    }
+
+    /**
+     * get_component_path
+     *
+     * Returns the filesystem path to a component plugin directory.
+     * When Extension support is enabled and the component exists in the active
+     * Extension, the Extension path is returned. Otherwise the built-in path
+     * inside this plugin is used (pChart / classic behaviour).
+     *
+     * Naming convention for Extensions: blocks/configurablereports_{name}/
+     * Active Extension is stored in config 'block_configurable_reports/activeextension'.
+     * Defaults to 'extension' (i.e. blocks/configurablereports_extension/).
+     *
+     * @param string $type       Component type: 'plot', 'permissions', 'template', ...
+     * @param string $pluginname Plugin directory name (e.g. 'bar', 'coursecustomfield')
+     * @return string            Absolute path to the component directory (no trailing slash)
+     */
+    private function get_component_path(string $type, string $pluginname): string {
+        global $CFG;
+
+        $base = $CFG->dirroot . '/blocks/configurable_reports';
+
+        if (get_config('block_configurable_reports', 'useextension')) {
+            // Determine which Extension to use.
+            $extname = get_config('block_configurable_reports', 'activeextension');
+            if (empty($extname)) {
+                $extname = 'extension'; // default: blocks/configurablereports_extension/
+            }
+            $extpath = $CFG->dirroot . '/blocks/configurablereports_' . $extname
+                     . '/components/' . $type . '/' . $pluginname;
+            if (is_dir($extpath)) {
+                return $extpath;
+            }
+        }
+
+        // Fallback to built-in component (pChart / classic).
+        return $base . '/components/' . $type . '/' . $pluginname;
     }
 
     /**
@@ -435,8 +472,7 @@ abstract class report_base {
             $series = [];
 
             foreach ($graphs as $g) {
-                require_once($CFG->dirroot . '/blocks/configurable_reports/components/plot/' . $g['pluginname'] .
-                    '/plugin.class.php');
+                require_once($this->get_component_path('plot', $g['pluginname']) . '/plugin.class.php');
                 $classname = 'plugin_' . $g['pluginname'];
                 $class = new $classname($this->config);
                 $reportgraphs[] = $class->execute($g['id'], $g['formdata'], $finalreport);
@@ -776,6 +812,28 @@ abstract class report_base {
      * @return void
      */
     public function print_template($config, moodle_page $moodlepage): void {
+        global $CFG;
+
+        // If Extension is enabled, check for a template renderer in the Extension.
+        if (get_config('block_configurable_reports', 'useextension')) {
+            $extname = get_config('block_configurable_reports', 'activeextension');
+            if (empty($extname)) {
+                $extname = 'extension';
+            }
+            $renderer = $CFG->dirroot . '/blocks/configurablereports_' . $extname
+                      . '/components/template/renderer.php';
+            if (file_exists($renderer)) {
+                require_once($renderer);
+                // The renderer is expected to define print_template_extension()
+                // as a standalone function or to echo output directly.
+                if (function_exists('print_template_extension')) {
+                    print_template_extension($this, $config, $moodlepage);
+                    return;
+                }
+            }
+        }
+
+        // Fallback: classic (pChart) template processing.
         global $OUTPUT;
 
         $pagecontents = [];
