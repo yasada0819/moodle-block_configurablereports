@@ -125,4 +125,38 @@ if ($ADMIN->fulltree) {
             get_string('allowedsqlusersinfo', 'block_configurable_reports'), '', PARAM_TEXT
         )
     );
+
+    // --- Extension support ---
+    // Enable/disable Extension plugins (e.g. block_configurablereports_extension).
+    // Default OFF: no file scanning overhead unless explicitly enabled.
+    $settings->add(new admin_setting_configcheckbox(
+        'block_configurable_reports/useextension',
+        get_string('useextension', 'block_configurable_reports'),
+        get_string('useextension_desc', 'block_configurable_reports'),
+        0
+    ));
+
+    // If multiple Extensions are installed, let the admin choose which one to use.
+    // Single-Extension environments (the common case) need no extra setting.
+    $extdirs = glob($CFG->dirroot . '/blocks/configurablereports_*/');
+    if ($extdirs && count($extdirs) > 1) {
+        $extoptions = [];
+        foreach ($extdirs as $extpath) {
+            $engine = str_replace('configurablereports_', '', basename($extpath));
+            $plugin = new stdClass();
+            $versionfile = $extpath . 'version.php';
+            if (file_exists($versionfile)) {
+                include($versionfile);
+            }
+            $label = !empty($plugin->extensionlabel) ? $plugin->extensionlabel : $engine;
+            $extoptions[$engine] = $label;
+        }
+        $settings->add(new admin_setting_configselect(
+            'block_configurable_reports/activeextension',
+            get_string('activeextension', 'block_configurable_reports'),
+            get_string('activeextension_desc', 'block_configurable_reports'),
+            'extension',  // default: block_configurablereports_extension
+            $extoptions
+        ));
+    }
 }
