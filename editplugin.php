@@ -84,7 +84,9 @@ $PAGE->set_url('/blocks/configurable_reports/editplugin.php', ['id' => $id, 'com
 $cdata = null;
 $plugin = '';
 if (!$cid) {
-    if (filetype($CFG->dirroot . '/blocks/configurable_reports/components/' . $comp . '/' . $pname) === 'dir') {
+    // 本家またはExtensionにプラグインディレクトリが存在するか確認.
+    $pluginpath = report_base::get_component_path($comp, $pname);
+    if (is_dir($pluginpath)) {
         $plugin = $pname;
     }
 } else {
@@ -128,7 +130,7 @@ if (!$plugin || $plugin !== $pname) {
 }
 defined('MOODLE_INTERNAL') || die;
 require_once($CFG->dirroot . '/blocks/configurable_reports/plugin.class.php');
-require_once($CFG->dirroot . '/blocks/configurable_reports/components/' . $comp . '/' . $pname . '/plugin.class.php');
+require_once(report_base::get_component_path($comp, $pname) . '/plugin.class.php');
 $pluginclassname = 'plugin_' . $pname;
 $pluginclass = new $pluginclassname($report);
 
@@ -138,7 +140,7 @@ if (isset($pluginclass->form) && $pluginclass->form) {
     $componentclassname = 'component_' . $comp;
     $compclass = new $componentclassname($report->id);
 
-    require_once($CFG->dirroot . '/blocks/configurable_reports/components/' . $comp . '/' . $pname . '/form.php');
+    require_once(report_base::get_component_path($comp, $pname) . '/form.php');
     $classname = $pname . '_form';
 
     $formurlparams = ['id' => $id, 'comp' => $comp, 'pname' => $pname];
@@ -261,4 +263,3 @@ if ($pluginclass->form) {
 }
 
 echo $OUTPUT->footer();
-
