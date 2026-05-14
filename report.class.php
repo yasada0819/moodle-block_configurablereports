@@ -901,7 +901,8 @@ abstract class report_base {
             }
         }
 
-        $templateeditor = get_config('block_configurable_reports', 'templateeditor');
+        $extname = get_config('block_configurable_reports', 'activeextension') ?: 'extension';
+        $templateeditor = get_config('block_configurablereports_' . $extname, 'templateeditor');
 
         if ($templateeditor === 'gui'
             && !empty($config->editormode)
