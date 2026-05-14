@@ -186,8 +186,7 @@ if ($elements) {
             continue;
         }
 
-        require_once($CFG->dirroot . '/blocks/configurable_reports/components/' . $comp . '/' . $e['pluginname'] .
-            '/plugin.class.php');
+        require_once(report_base::get_component_path($comp, $e['pluginname']) . '/plugin.class.php');
         $pluginclassname = 'plugin_' . $e['pluginname'];
         $pluginclass = new $pluginclassname($report);
 
