@@ -126,37 +126,27 @@ if ($ADMIN->fulltree) {
         )
     );
 
-    // --- Extension support ---
-    // Enable/disable Extension plugins (e.g. block_configurablereports_extension).
-    // Default OFF: no file scanning overhead unless explicitly enabled.
-    $settings->add(new admin_setting_configcheckbox(
-        'block_configurable_reports/useextension',
-        get_string('useextension', 'block_configurable_reports'),
-        get_string('useextension_desc', 'block_configurable_reports'),
-        0
+    $settings->add(new admin_setting_configselect(
+    'block_configurable_reports/graphlibrary',
+    get_string('graphlibrary', 'block_configurable_reports'),
+    get_string('graphlibrary_desc', 'block_configurable_reports'),
+    'pchart',
+    [
+        'pchart'  => 'pChart (default)',
+        'chartjs' => 'Chart.js',
+    ]
     ));
 
-    // If multiple Extensions are installed, let the admin choose which one to use.
-    // Single-Extension environments (the common case) need no extra setting.
-    $extdirs = glob($CFG->dirroot . '/blocks/configurablereports_*/');
-    if ($extdirs && count($extdirs) > 1) {
-        $extoptions = [];
-        foreach ($extdirs as $extpath) {
-            $engine = str_replace('configurablereports_', '', basename($extpath));
-            $plugin = new stdClass();
-            $versionfile = $extpath . 'version.php';
-            if (file_exists($versionfile)) {
-                include($versionfile);
-            }
-            $label = !empty($plugin->extensionlabel) ? $plugin->extensionlabel : $engine;
-            $extoptions[$engine] = $label;
-        }
-        $settings->add(new admin_setting_configselect(
-            'block_configurable_reports/activeextension',
-            get_string('activeextension', 'block_configurable_reports'),
-            get_string('activeextension_desc', 'block_configurable_reports'),
-            'extension',  // default: block_configurablereports_extension
-            $extoptions
-        ));
-    }
+    $settings->add(new admin_setting_configselect(
+    'block_configurable_reports/templateeditor',
+    get_string('templateeditor', 'block_configurable_reports'),
+    get_string('templateeditor_desc', 'block_configurable_reports'),
+    'classic',
+    [
+        'classic' => get_string('templateeditor_classic', 'block_configurable_reports'),
+        'gui'     => get_string('templateeditor_gui',     'block_configurable_reports'),
+    ]
+    ));
+
+    
 }
