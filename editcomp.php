@@ -93,8 +93,13 @@ $componentclassname = 'component_' . $comp;
 $compclass = new $componentclassname($report->id);
 
 if ($compclass->form) {
-    require_once($CFG->dirroot . '/blocks/configurable_reports/components/' . $comp . '/form.php');
+    $formpath = report_base::get_component_path($comp, 'form') . '/form.php';
+    if (!file_exists($formpath)) {
+        $formpath = $CFG->dirroot . '/blocks/configurable_reports/components/' . $comp . '/form.php';
+    }
+    require_once($formpath);
     $classname = $comp . '_form';
+
     $editform = new $classname(
         'editcomp.php?id=' . $id . '&comp=' . $comp,
         compact('compclass', 'comp', 'id', 'report', 'reportclass', 'elements')
