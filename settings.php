@@ -142,11 +142,11 @@ if ($ADMIN->fulltree) {
     ));
 
     // インストール済みのExtensionを検出してセレクタを表示（2個以上のときのみ）.
-    $extensiondirs = glob($CFG->dirroot . '/blocks/configurablereports_*', GLOB_ONLYDIR);
+    $extensiondirs = glob($CFG->dirroot . '/blocks/configurable_reports_*/', GLOB_ONLYDIR);
     $extensionoptions = [];
     foreach ($extensiondirs as $dir) {
         $name = basename($dir);
-        $shortname = substr($name, strlen('configurablereports_'));
+        $shortname = substr($name, strlen('configurable_reports_'));
         $extensionoptions[$shortname] = $shortname;
     }
     if (count($extensionoptions) >= 2) {
@@ -164,7 +164,7 @@ if ($ADMIN->fulltree) {
     if (empty($extname)) {
         $extname = 'extension';
     }
-    $extsettingsfile = $CFG->dirroot . '/blocks/configurablereports_' . $extname . '/settings.php';
+    $extsettingsfile = $CFG->dirroot . '/blocks/configurable_reports_' . $extname . '/settings.php';
     if (file_exists($extsettingsfile)) {
         include($extsettingsfile);
     }

@@ -127,10 +127,10 @@ if ($compclass->plugins) {
         }
         $flagmap = ['plot' => 'use_plot', 'permissions' => 'use_permissions', 'template' => 'use_template'];
         $flag = $flagmap[$comp] ?? null;
-        if ($flag && get_config('block_configurablereports_' . $extname, $flag)) {
-            $extcompdir = $CFG->dirroot . '/blocks/configurablereports_' . $extname . '/components/' . $comp;
+        if ($flag && get_config('block_' . $extname, $flag)) {
+            $extcompdir = $CFG->dirroot . '/blocks/configurable_reports_' . $extname . '/components/' . $comp;
             if (is_dir($extcompdir)) {
-                $extplugins = get_list_of_plugins('blocks/configurablereports_' . $extname . '/components/' . $comp);
+                $extplugins = get_list_of_plugins('blocks/configurable_reports_' . $extname . '/components/' . $comp);
                 foreach ($extplugins as $ep) {
                     if (!in_array($ep, $plugins)) {
                         $plugins[] = $ep;

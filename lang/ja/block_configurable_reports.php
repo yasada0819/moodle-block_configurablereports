@@ -180,7 +180,7 @@ $string['template_ph_export']     = 'エクスポートオプション';
 $string['template_gui_loading']   = 'GUIビルダーを読み込み中...';
 // --- Extension ---
 $string['heading_extension']      = 'グラフエンジン拡張';
-$string['heading_extension_desc'] = 'Extensionプラグイン（例: block_configurablereports_extension）を別途インストールすることで、Chart.jsグラフ・GUIテンプレートビルダー・追加権限プラグインが使用できます。';
+$string['heading_extension_desc'] = 'Extensionプラグイン（例: block_configurable_reports_extension）を別途インストールすることで、Chart.jsグラフ・GUIテンプレートビルダー・追加権限プラグインが使用できます。';
 $string['useextension']           = 'Extensionを有効にする';
 $string['useextension_desc']      = '有効にすると、インストール済みのExtensionプラグインがグラフ描画・テンプレート編集・権限プラグインに使用されます。Extensionが見つからない場合は組み込みのpChartにフォールバックします。';
 $string['activeextension']        = '使用するExtension';

@@ -172,10 +172,10 @@ abstract class report_base {
                 'template'    => 'use_template',
             ];
             $flag = $flagmap[$type] ?? null;
-            $enabled = $flag && get_config('block_configurablereports_' . $extname, $flag);
+            $enabled = $flag && get_config('block_' . $extname, $flag);
 
             if ($enabled) {
-                $extpath = $CFG->dirroot . '/blocks/configurablereports_' . $extname
+                $extpath = $CFG->dirroot . '/blocks/configurable_reports_' . $extname
                          . '/components/' . $type . '/' . $pluginname;
                 if (is_dir($extpath)) {
                     return $extpath;
@@ -901,7 +901,7 @@ abstract class report_base {
         }
 
         $extname = get_config('block_configurable_reports', 'activeextension') ?: 'extension';
-        $templateeditor = get_config('block_configurablereports_' . $extname, 'templateeditor');
+        $templateeditor = get_config('block_' . $extname, 'templateeditor');
 
         if ($templateeditor === 'gui'
             && !empty($config->editormode)

@@ -755,7 +755,7 @@ $string['template_ph_export']     = 'Export options';
 $string['template_gui_loading']   = 'Loading GUI builder...';
 // --- Extension ---
 $string['heading_extension']      = 'Graph engine extension';
-$string['heading_extension_desc'] = 'Install a separate Extension plugin (e.g. block_configurablereports_extension) to use Chart.js graphs, the GUI template builder, and additional permission plugins.';
+$string['heading_extension_desc'] = 'Install a separate Extension plugin (e.g. block_configurable_reports_extension) to use Chart.js graphs, the GUI template builder, and additional permission plugins.';
 $string['useextension']           = 'Enable Extension';
 $string['useextension_desc']      = 'When enabled, an installed Extension plugin will be used for graph rendering, template editing, and permission plugins. Falls back to built-in pChart if no Extension is found.';
 $string['activeextension']        = 'Active extension';
