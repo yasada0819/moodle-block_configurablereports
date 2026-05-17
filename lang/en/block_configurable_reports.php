@@ -753,3 +753,14 @@ $string['template_ph_reportname'] = 'Report name';
 $string['template_ph_pagination'] = 'Pagination';
 $string['template_ph_export']     = 'Export options';
 $string['template_gui_loading']   = 'Loading GUI builder...';
+
+// --- copy reports from another course ---
+$string['cr_copy_heading']         = 'Copy reports from another course';
+$string['cr_copy_source_course']   = 'Source course:';
+$string['cr_copy_show_reports']    = 'Show reports';
+$string['cr_copy_select_reports']  = 'Select reports to copy from "{$a}":';
+$string['cr_copy_selected']        = 'Copy selected reports to this course';
+$string['cr_copy_no_sources']      = 'No other courses with reports found that you have access to.';
+$string['cr_copy_no_reports']      = 'No reports found in the selected course.';
+$string['cr_copy_copied_n']        = '{$a} report(s) copied successfully.';
+$string['cr_copy_copied_none']     = 'No reports were copied (check your permissions).';
