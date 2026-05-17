@@ -178,3 +178,14 @@ $string['template_ph_reportname'] = 'レポート名';
 $string['template_ph_pagination'] = 'ページネーション';
 $string['template_ph_export']     = 'エクスポートオプション';
 $string['template_gui_loading']   = 'GUIビルダーを読み込み中...';
+
+// --- 別コースからレポートをコピー ---
+$string['cr_copy_heading']         = '別コースからレポートをコピー';
+$string['cr_copy_source_course']   = 'コピー元コース：';
+$string['cr_copy_show_reports']    = 'レポートを表示';
+$string['cr_copy_select_reports']  = '「{$a}」からコピーするレポートを選択：';
+$string['cr_copy_selected']        = '選択したレポートをこのコースにコピー';
+$string['cr_copy_no_sources']      = 'アクセス可能なレポートを持つコースが見つかりません。';
+$string['cr_copy_no_reports']      = '選択したコースにレポートが見つかりません。';
+$string['cr_copy_copied_n']        = '{$a} 件のレポートをコピーしました。';
+$string['cr_copy_copied_none']     = 'レポートをコピーできませんでした（権限を確認してください）。';
