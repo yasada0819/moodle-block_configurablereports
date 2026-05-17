@@ -240,4 +240,217 @@ if ($userandrepo = get_config('block_configurable_reports', 'crrepository')) {
 
 $mform->display();
 
+// ------------------------------------------------------------------ //
+// Copy reports from another course (Manager / Admin only)             //
+// ------------------------------------------------------------------ //
+
+if (has_capability('block/configurable_reports:managereports', $context)) {
+
+    // --- Handle POST: execute copy ---
+    $doCopy      = optional_param('cr_copy_docopy', 0, PARAM_BOOL);
+    $fromCourseId = optional_param('cr_copy_fromcourseid', 0, PARAM_INT);
+
+    if ($doCopy && confirm_sesskey()) {
+        $reportIds = optional_param_array('cr_copy_reportids', [], PARAM_INT);
+
+        if (!empty($reportIds) && $fromCourseId) {
+            $copied = 0;
+            foreach ($reportIds as $rid) {
+                $src = $DB->get_record('block_configurable_reports', ['id' => $rid]);
+                if (!$src) {
+                    continue;
+                }
+                if ($src->courseid == SITEID) {
+                    $srcctx = context_system::instance();
+                } else {
+                    $srcctx = context_course::instance($src->courseid);
+                }
+                if (!has_capability('block/configurable_reports:managereports', $srcctx)) {
+                    continue;
+                }
+
+                $newreport = clone $src;
+                unset($newreport->id);
+                $newreport->courseid = $course->id;
+                $newreport->ownerid  = $USER->id;
+                $newreport->visible  = 1;
+
+                $srccoursename = $DB->get_field('course', 'shortname', ['id' => $src->courseid]);
+                if (!$srccoursename) {
+                    $srccoursename = get_string('deleted');
+                }
+                $newreport->name = $src->name . ' (' . $srccoursename . ')';
+
+                if (!empty($newreport->components)) {
+                    $components = cr_unserialize($newreport->components);
+                    if (array_key_exists('customsql', $components)) {
+                        $components['customsql']['config']->courseid = $course->id;
+                    }
+                    $newreport->components = cr_serialize($components);
+                }
+
+                $DB->insert_record('block_configurable_reports', $newreport);
+                $copied++;
+            }
+
+            if ($copied > 0) {
+                \core\notification::success(
+                    get_string('cr_copy_copied_n', 'block_configurable_reports', $copied)
+                );
+            } else {
+                \core\notification::warning(
+                    get_string('cr_copy_copied_none', 'block_configurable_reports')
+                );
+            }
+            redirect(new moodle_url('/blocks/configurable_reports/managereport.php',
+                ['courseid' => $course->id]));
+        }
+    }
+
+    // --- Build course selector (courses with reports the user can manage) ---
+    $courseidsWithReports = $DB->get_fieldset_sql(
+        'SELECT DISTINCT courseid FROM {block_configurable_reports} WHERE courseid != ?',
+        [$course->id]
+    );
+
+    $courseOptions = [];
+    foreach ($courseidsWithReports as $cid) {
+        if ((int)$cid === SITEID) {
+            $ctx = context_system::instance();
+        } else {
+            if (!$DB->record_exists('course', ['id' => $cid])) {
+                continue;
+            }
+            $ctx = context_course::instance($cid);
+        }
+        if (!has_capability('block/configurable_reports:managereports', $ctx)) {
+            continue;
+        }
+        if ((int)$cid === SITEID) {
+            $label = get_string('site');
+        } else {
+            $label = $DB->get_field('course', 'fullname', ['id' => $cid]);
+            if (!$label) {
+                continue;
+            }
+            $label = format_string($label);
+        }
+        $courseOptions[$cid] = $label;
+    }
+    asort($courseOptions);
+
+    // --- Build report list for selected source course ---
+    $reportRows = [];
+    if ($fromCourseId && isset($courseOptions[$fromCourseId])) {
+        $reportRows = $DB->get_records(
+            'block_configurable_reports',
+            ['courseid' => $fromCourseId],
+            'name ASC'
+        );
+    }
+
+    // --- Render ---
+    echo html_writer::tag('hr', '');
+    echo html_writer::start_tag('div', ['class' => 'cr-copy-from-course mt-4']);
+    echo html_writer::tag('h4',
+        get_string('cr_copy_heading', 'block_configurable_reports'));
+
+    if (empty($courseOptions)) {
+        echo $OUTPUT->notification(
+            get_string('cr_copy_no_sources', 'block_configurable_reports'), 'info');
+    } else {
+        // Step 1: course selector.
+        $step1url = new moodle_url('/blocks/configurable_reports/managereport.php',
+            ['courseid' => $course->id]);
+        echo html_writer::start_tag('form', [
+            'method' => 'get',
+            'action' => $step1url->out(false),
+            'class'  => 'form-inline mb-3',
+        ]);
+        echo html_writer::empty_tag('input', [
+            'type' => 'hidden', 'name' => 'courseid', 'value' => $course->id]);
+        echo html_writer::tag('label',
+            get_string('cr_copy_source_course', 'block_configurable_reports'),
+            ['for' => 'cr_copy_fromcourseid', 'class' => 'mr-2']);
+        echo html_writer::select(
+            ['' => get_string('choosedots')] + $courseOptions,
+            'cr_copy_fromcourseid',
+            $fromCourseId ?: '',
+            false,
+            ['id' => 'cr_copy_fromcourseid', 'class' => 'custom-select mr-2']
+        );
+        echo html_writer::empty_tag('input', [
+            'type'  => 'submit',
+            'value' => get_string('cr_copy_show_reports', 'block_configurable_reports'),
+            'class' => 'btn btn-secondary',
+        ]);
+        echo html_writer::end_tag('form');
+
+        // Step 2: report checklist.
+        if ($fromCourseId && isset($courseOptions[$fromCourseId])) {
+            if (empty($reportRows)) {
+                echo $OUTPUT->notification(
+                    get_string('cr_copy_no_reports', 'block_configurable_reports'), 'info');
+            } else {
+                $copyurl = new moodle_url('/blocks/configurable_reports/managereport.php',
+                    ['courseid' => $course->id]);
+                echo html_writer::start_tag('form', [
+                    'method' => 'post',
+                    'action' => $copyurl->out(false),
+                ]);
+                echo html_writer::empty_tag('input', [
+                    'type' => 'hidden', 'name' => 'courseid', 'value' => $course->id]);
+                echo html_writer::empty_tag('input', [
+                    'type' => 'hidden', 'name' => 'cr_copy_fromcourseid', 'value' => $fromCourseId]);
+                echo html_writer::empty_tag('input', [
+                    'type' => 'hidden', 'name' => 'cr_copy_docopy', 'value' => '1']);
+                echo html_writer::empty_tag('input', [
+                    'type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+
+                echo html_writer::tag('p',
+                    get_string('cr_copy_select_reports', 'block_configurable_reports',
+                        format_string($courseOptions[$fromCourseId])));
+
+                echo html_writer::start_tag('div', ['class' => 'mb-2']);
+                echo html_writer::tag('label',
+                    html_writer::empty_tag('input', [
+                        'type'    => 'checkbox',
+                        'id'      => 'cr_copy_selectall',
+                        'class'   => 'mr-1',
+                        'onclick' => "document.querySelectorAll('.cr-copy-reportcheck').forEach(function(c){c.checked=this.checked;},this)",
+                    ]) . get_string('selectall')
+                );
+                echo html_writer::end_tag('div');
+
+                foreach ($reportRows as $r) {
+                    $label = format_string($r->name)
+                        . ' <small class="text-muted">('
+                        . get_string('report_' . $r->type, 'block_configurable_reports')
+                        . ')</small>';
+                    echo html_writer::start_tag('div', ['class' => 'form-check']);
+                    echo html_writer::tag('label',
+                        html_writer::empty_tag('input', [
+                            'type'  => 'checkbox',
+                            'name'  => 'cr_copy_reportids[]',
+                            'value' => $r->id,
+                            'class' => 'cr-copy-reportcheck form-check-input mr-1',
+                        ]) . $label,
+                        ['class' => 'form-check-label']
+                    );
+                    echo html_writer::end_tag('div');
+                }
+
+                echo html_writer::empty_tag('input', [
+                    'type'  => 'submit',
+                    'value' => get_string('cr_copy_selected', 'block_configurable_reports'),
+                    'class' => 'btn btn-primary mt-3',
+                ]);
+                echo html_writer::end_tag('form');
+            }
+        }
+    }
+
+    echo html_writer::end_tag('div'); // .cr-copy-from-course
+}
+
 echo $OUTPUT->footer();
