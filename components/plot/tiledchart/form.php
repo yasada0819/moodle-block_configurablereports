@@ -209,6 +209,11 @@ class tiledchart_form extends moodleform {
         $mform->setDefault('nahandling', 'exclude');
         $mform->addHelpButton('nahandling', 'nahandling', 'block_configurable_reports');
 
+        $mform->addElement('advcheckbox', 'show_legend',
+            get_string('show_legend', 'block_configurable_reports'));
+        $mform->setDefault('show_legend', 1);
+        $mform->addHelpButton('show_legend', 'show_legend', 'block_configurable_reports');
+
         // Buttons.
         $this->add_action_buttons(true, get_string('add'));
     }

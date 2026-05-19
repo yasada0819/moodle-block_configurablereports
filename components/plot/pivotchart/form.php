@@ -29,30 +29,9 @@ require_once($CFG->libdir . '/formslib.php');
 
 /**
  * Class pivotchart_form
- *
- * ロング形式（縦持ち）のデータを1枚のグラフに集約して表示するプラグイン。
- *
- * 設定項目：
- *   x_field      : X軸ラベルになる列（例：氏名、日付）
- *   series_field : 色分けの基準になる列（例：科目、カテゴリ）
- *   value_field  : Y軸の値列
- *   value_agg    : 集計方法（X×シリーズ組み合わせが複数行ある場合）
- *   charttype    : bar / line / area
- *   width/height : グラフサイズ
- *   bargrouping  : grouped / stacked（bar時のみ有効）
- *   bardirection : vertical / horizontal（bar時のみ有効）
- *
- * tiledchart との関係：
- *   tiledchart  → ロング形式 → グループ列でタイル分割
- *   pivotchart  → ロング形式 → シリーズ列で色分け・1グラフに集約
- *
- * @package   block_configurable_reports
  */
 class pivotchart_form extends moodleform {
 
-    /**
-     * Form definition
-     */
     public function definition(): void {
         global $CFG;
 
@@ -77,25 +56,21 @@ class pivotchart_form extends moodleform {
         $mform->addElement('header', 'crformheader',
             get_string('head_data', 'block_configurable_reports'), '');
 
-        // X軸列
         $mform->addElement('select', 'x_field',
             get_string('pivotchart_x_field', 'block_configurable_reports'), $options);
         $mform->addRule('x_field', null, 'required', null, 'client');
         $mform->addHelpButton('x_field', 'pivotchart_x_field', 'block_configurable_reports');
 
-        // シリーズ列（色分け）
         $mform->addElement('select', 'series_field',
             get_string('pivotchart_series_field', 'block_configurable_reports'), $options);
         $mform->addRule('series_field', null, 'required', null, 'client');
         $mform->addHelpButton('series_field', 'pivotchart_series_field', 'block_configurable_reports');
 
-        // 値列
         $mform->addElement('select', 'value_field',
             get_string('pivotchart_value_field', 'block_configurable_reports'), $options);
         $mform->addRule('value_field', null, 'required', null, 'client');
         $mform->addHelpButton('value_field', 'pivotchart_value_field', 'block_configurable_reports');
 
-        // 集計方法
         $mform->addElement('select', 'value_agg',
             get_string('pivotchart_value_agg', 'block_configurable_reports'), $aggregations);
         $mform->setDefault('value_agg', 'sum');
@@ -105,37 +80,36 @@ class pivotchart_form extends moodleform {
         $mform->addElement('header', 'chartjsoptions',
             get_string('head_chartjs_options', 'block_configurable_reports'));
 
-        // グラフタイプ
-        $charttypes = [
-            'bar'  => get_string('tiledchart_type_bar',  'block_configurable_reports'),
-            'line' => get_string('tiledchart_type_line', 'block_configurable_reports'),
-            'area' => get_string('tiledchart_type_area', 'block_configurable_reports'),
-        ];
         $mform->addElement('select', 'charttype',
-            get_string('tiledchart_charttype', 'block_configurable_reports'), $charttypes);
+            get_string('tiledchart_charttype', 'block_configurable_reports'), [
+                'bar'  => get_string('tiledchart_type_bar',  'block_configurable_reports'),
+                'line' => get_string('tiledchart_type_line', 'block_configurable_reports'),
+                'area' => get_string('tiledchart_type_area', 'block_configurable_reports'),
+            ]);
         $mform->setDefault('charttype', 'bar');
 
-        // 表示の向き（bar のみ有効）
-        $bardirections = [
-            'vertical'   => get_string('bardirection_vertical',  'block_configurable_reports'),
-            'horizontal' => get_string('bardirection_horizontal', 'block_configurable_reports'),
-        ];
         $mform->addElement('select', 'bardirection',
-            get_string('bardirection', 'block_configurable_reports'), $bardirections);
+            get_string('bardirection', 'block_configurable_reports'), [
+                'vertical'   => get_string('bardirection_vertical',   'block_configurable_reports'),
+                'horizontal' => get_string('bardirection_horizontal',  'block_configurable_reports'),
+            ]);
         $mform->setDefault('bardirection', 'vertical');
         $mform->addHelpButton('bardirection', 'bardirection', 'block_configurable_reports');
 
-        // グループ分け（bar のみ有効）
-        $bargroupings = [
-            'grouped' => get_string('bargrouping_grouped', 'block_configurable_reports'),
-            'stacked' => get_string('bargrouping_stacked', 'block_configurable_reports'),
-        ];
         $mform->addElement('select', 'bargrouping',
-            get_string('bargrouping', 'block_configurable_reports'), $bargroupings);
+            get_string('bargrouping', 'block_configurable_reports'), [
+                'grouped' => get_string('bargrouping_grouped', 'block_configurable_reports'),
+                'stacked' => get_string('bargrouping_stacked', 'block_configurable_reports'),
+            ]);
         $mform->setDefault('bargrouping', 'grouped');
         $mform->addHelpButton('bargrouping', 'bargrouping', 'block_configurable_reports');
 
-        // グラフサイズ
+        $mform->addElement('advcheckbox', 'show_legend',
+            get_string('show_legend', 'block_configurable_reports'));
+        $mform->setDefault('show_legend', 1);
+        $mform->addHelpButton('show_legend', 'show_legend', 'block_configurable_reports');
+
+        // --- サイズ設定 ---
         $mform->addElement('header', 'size',
             get_string('head_size', 'block_configurable_reports'));
 
@@ -149,51 +123,37 @@ class pivotchart_form extends moodleform {
         $mform->setDefault('height', 500);
         $mform->setType('height', PARAM_INT);
 
-        // Buttons.
         $this->add_action_buttons(true, get_string('add'));
     }
 
-    /**
-     * レポートのカラム一覧を取得
-     */
     private function get_column_options($report, $CFG): array {
         $options = [];
-
         if ($report->type !== 'sql') {
             $components = cr_unserialize($this->_customdata['report']->components);
-
             if (!is_array($components) || empty($components['columns']['elements'])) {
                 throw new moodle_exception('nocolumns');
             }
-
-            $columns = $components['columns']['elements'];
             $i = 0;
-            foreach ($columns as $c) {
+            foreach ($components['columns']['elements'] as $c) {
                 if (!empty($c['summary'])) {
-                    $key = "$i," . $c['summary'];
-                    $options[$key] = str_replace('_', ' ', $c['summary']);
+                    $options["$i," . $c['summary']] = str_replace('_', ' ', $c['summary']);
                     $i++;
                 }
             }
         } else {
             require_once($CFG->dirroot . '/blocks/configurable_reports/report.class.php');
             require_once($CFG->dirroot . '/blocks/configurable_reports/reports/' . $report->type . '/report.class.php');
-
             $reportclassname = 'report_' . $report->type;
             $reportclass     = new $reportclassname($report);
-
-            $components = cr_unserialize($report->components);
-            $config     = $components['customsql']['config'] ?? new stdclass;
-
+            $components      = cr_unserialize($report->components);
+            $config          = $components['customsql']['config'] ?? new stdclass;
             if (isset($config->querysql)) {
-                $sql = $config->querysql;
-                $sql = $reportclass->prepare_sql($sql);
+                $sql = $reportclass->prepare_sql($config->querysql);
                 if ($rs = $reportclass->execute_query($sql)) {
                     foreach ($rs as $row) {
                         $i = 0;
                         foreach ($row as $colname => $value) {
-                            $key = "$i,$colname";
-                            $options[$key] = str_replace('_', ' ', $colname);
+                            $options["$i,$colname"] = str_replace('_', ' ', $colname);
                             $i++;
                         }
                         break;
@@ -202,7 +162,6 @@ class pivotchart_form extends moodleform {
                 }
             }
         }
-
         return $options;
     }
 }

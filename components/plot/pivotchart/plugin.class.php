@@ -31,20 +31,6 @@ require_once($CFG->dirroot . '/blocks/configurable_reports/plugin.class.php');
  * ロング形式（縦持ち）のデータを自動的にワイド形式へピボット変換し、
  * 1枚のグラフに集約して表示するプラグイン（Chart.js 専用）。
  *
- * 入力データ例：
- *   氏名 | 科目 | 素点
- *   A    | 数学 | 80
- *   A    | 英語 | 70
- *   B    | 数学 | 90
- *
- * 設定：x_field=氏名, series_field=科目, value_field=素点, value_agg=sum
- *
- * 出力：AとBを横軸に、数学・英語を系列（色分け）とした棒グラフ1枚
- *
- * tiledchart との関係：
- *   tiledchart  → ロング形式 → group_field でタイル分割
- *   pivotchart  → ロング形式 → series_field で色分け・1グラフに集約
- *
  * @package   block_configurable_reports
  */
 class plugin_pivotchart extends plugin_base {
@@ -62,7 +48,7 @@ class plugin_pivotchart extends plugin_base {
     }
 
     // =========================================================================
-    // 集計ロジック（tiledchart / radar / line と共通パターン）
+    // 集計ロジック
     // =========================================================================
 
     protected function aggregate(array $values, string $method) {
@@ -79,7 +65,7 @@ class plugin_pivotchart extends plugin_base {
             case 'q3':     return $this->percentile($values, 75);
             case 'min':    return min($values);
             case 'max':    return max($values);
-            default:       return $values[0]; // none：最初の値
+            default:       return $values[0];
         }
     }
 
@@ -99,25 +85,10 @@ class plugin_pivotchart extends plugin_base {
     // ピボット変換
     // =========================================================================
 
-    /**
-     * ロング形式の finalreport をワイド形式にピボット変換して返す。
-     *
-     * 返り値：
-     * [
-     *   '__labels__'  => ['A', 'B', ...],   // X軸ラベル（SQL ORDER BY 順）
-     *   '数学'        => [80, 90, ...],      // シリーズ名 => 各Xラベルの集計値
-     *   '英語'        => [70,  0, ...],      // 欠損は 0 埋め
-     * ]
-     *
-     * @param object $data        フォーム設定
-     * @param array  $finalreport SQLの全行
-     * @return array
-     */
     protected function build_pivot(object $data, array $finalreport): array {
         if (empty($finalreport)) {
             return [];
         }
-
         if (empty($data->x_field) || empty($data->series_field) || empty($data->value_field)) {
             return [];
         }
@@ -130,11 +101,9 @@ class plugin_pivotchart extends plugin_base {
         $valueidx  = (int)$valueidx;
         $agg       = !empty($data->value_agg) ? $data->value_agg : 'sum';
 
-        // X軸ラベルとシリーズ名の出現順を収集（SQL ORDER BY を尊重）
         $labelorder  = [];
         $seriesorder = [];
-        // 生データ蓄積: $rawdata[xラベル][シリーズ名][] = 値
-        $rawdata = [];
+        $rawdata     = [];
 
         foreach ($finalreport as $r) {
             $xlabel    = (string)($r[$xidx]      ?? '');
@@ -147,26 +116,18 @@ class plugin_pivotchart extends plugin_base {
             if (!in_array($seriesval, $seriesorder, true)) {
                 $seriesorder[] = $seriesval;
             }
-
-            // count は非数値行もカウント対象、それ以外は数値のみ
             if ($agg !== 'count' && !is_numeric($value)) {
-                $value = 0.0; // ピボットでは欠損を 0 扱いが自然
+                $value = 0.0;
             }
             $rawdata[$xlabel][$seriesval][] = is_numeric($value) ? (float)$value : 1.0;
         }
 
-        // 集計してワイド形式に変換
         $result = ['__labels__' => $labelorder];
-
         foreach ($seriesorder as $sname) {
             $values = [];
             foreach ($labelorder as $xlabel) {
-                $vals = $rawdata[$xlabel][$sname] ?? [];
-                if (empty($vals)) {
-                    $values[] = 0; // 欠損は 0 埋め
-                } else {
-                    $values[] = round((float)$this->aggregate($vals, $agg), 4);
-                }
+                $vals     = $rawdata[$xlabel][$sname] ?? [];
+                $values[] = empty($vals) ? 0 : round((float)$this->aggregate($vals, $agg), 4);
             }
             $result[$sname] = $values;
         }
@@ -193,11 +154,12 @@ class plugin_pivotchart extends plugin_base {
         $labels = $pivotdata['__labels__'];
         unset($pivotdata['__labels__']);
 
-        $charttype  = !empty($data->charttype)   ? $data->charttype    : 'bar';
-        $width      = !empty($data->width)        ? (int)$data->width   : 900;
-        $height     = !empty($data->height)       ? (int)$data->height  : 500;
-        $horizontal = !empty($data->bardirection) && $data->bardirection === 'horizontal';
-        $stacked    = !empty($data->bargrouping)  && $data->bargrouping  === 'stacked';
+        $charttype  = !empty($data->charttype)    ? $data->charttype       : 'bar';
+        $width      = !empty($data->width)        ? (int)$data->width      : 900;
+        $height     = !empty($data->height)       ? (int)$data->height     : 500;
+        $horizontal = !empty($data->bardirection) && $data->bardirection   === 'horizontal';
+        $stacked    = !empty($data->bargrouping)  && $data->bargrouping    === 'stacked';
+        $showlegend = !isset($data->show_legend)  || !empty($data->show_legend);
 
         $palette = [
             ['bg' => 'rgba(54,  162, 235, 0.8)', 'border' => 'rgba(54,  162, 235, 1)'],
@@ -232,9 +194,7 @@ class plugin_pivotchart extends plugin_base {
             $colorindex++;
         }
 
-        // bar/line/area の Chart.js type
         $actualtype  = ($charttype === 'area') ? 'line' : $charttype;
-
         $axisoptions = ['beginAtZero' => true];
         if ($stacked) {
             $axisoptions['stacked'] = true;
@@ -244,15 +204,13 @@ class plugin_pivotchart extends plugin_base {
             'responsive'          => true,
             'maintainAspectRatio' => false,
             'plugins' => [
-                'legend' => ['position' => 'top'],
+                'legend' => ['display' => $showlegend, 'position' => 'top'],
             ],
             'scales' => [
                 'x' => $axisoptions,
                 'y' => $axisoptions,
             ],
         ];
-
-        // 横棒グラフ
         if ($charttype === 'bar' && $horizontal) {
             $chartoptions['indexAxis'] = 'y';
         }
@@ -280,9 +238,6 @@ class plugin_pivotchart extends plugin_base {
         return $html;
     }
 
-    /**
-     * get_series（pChart 互換スタブ）
-     */
     public function get_series(): array {
         return [];
     }

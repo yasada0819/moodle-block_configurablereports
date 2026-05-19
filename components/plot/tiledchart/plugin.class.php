@@ -242,6 +242,7 @@ class plugin_tiledchart extends plugin_base {
         $tilewidth  = !empty($data->tilewidth)   ? (int)$data->tilewidth  : 400;
         $tileheight = !empty($data->tileheight)  ? (int)$data->tileheight : 280;
         $columns    = !empty($data->tilecolumns) ? $data->tilecolumns     : 'auto';
+        $showlegend = !isset($data->show_legend)  || !empty($data->show_legend);
 
         if ($columns === 'auto') {
             $tilestyle = 'width:' . $tilewidth . 'px;';
@@ -266,7 +267,7 @@ class plugin_tiledchart extends plugin_base {
             $canvasid    = 'cr_tiled_' . $id . '_' . substr(md5($groupname . uniqid('', true)), 0, 8);
             $chartconfig = $this->build_chartconfig(
                 $charttype, (string)$groupname,
-                $groupdata['labels'], $groupdata['series'], $palette
+                $groupdata['labels'], $groupdata['series'], $palette, $showlegend
             );
 
             $tiles .= '<div style="' . $tilestyle . ' box-sizing:border-box;">';
@@ -295,11 +296,11 @@ class plugin_tiledchart extends plugin_base {
         string $groupname,
         array  $labels,
         array  $series,
-        array  $palette
+        array  $palette,
+        bool   $showlegend
     ): string {
 
         $titleopts  = ['display' => true, 'text' => $groupname];
-        $showlegend = count($series) > 1;
 
         if (in_array($charttype, ['pie', 'doughnut'])) {
             // 系列ごとにdataset → 複数系列 = 同心円
@@ -320,7 +321,7 @@ class plugin_tiledchart extends plugin_base {
                     'responsive'          => true,
                     'maintainAspectRatio' => false,
                     'plugins' => [
-                        'legend' => ['display' => true, 'position' => 'bottom'],
+                        'legend' => ['display' => $showlegend, 'position' => 'bottom'],
                         'title'  => $titleopts,
                     ],
                 ],

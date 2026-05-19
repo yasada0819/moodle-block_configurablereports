@@ -29,28 +29,6 @@ require_once($CFG->libdir . '/formslib.php');
 
 /**
  * Class tiledpivot_form
- *
- * ロング形式（縦持ち）のデータを tile_field でタイル分割しつつ、
- * 各タイル内では series_field で色分けした1枚のグラフを生成する。
- *
- * tiledchart との関係：
- *   tiledchart  → ロング形式 → group_field でタイル / 列名を直接系列指定
- *   pivotchart  → ロング形式 → series_field の値で色分け / 1グラフ
- *   tiledpivot  → ロング形式 → tile_field でタイル / series_field の値で色分け
- *
- * 設定項目：
- *   tile_field   : タイル分割の基準列（例：年度、クラス）
- *   x_field      : X軸ラベル列（例：日付、科目）
- *   series_field : 色分け列（例：氏名、グループ）
- *   value_field  : Y軸の値列
- *   value_agg    : 集計方法
- *   charttype    : bar / line / area
- *   tilecolumns  : 1行あたりのタイル数
- *   tilewidth    : タイル幅（px）
- *   tileheight   : タイル高さ（px）
- *   bargrouping  : grouped / stacked（bar 時のみ有効）
- *
- * @package   block_configurable_reports
  */
 class tiledpivot_form extends moodleform {
 
@@ -78,31 +56,26 @@ class tiledpivot_form extends moodleform {
         $mform->addElement('header', 'crformheader',
             get_string('head_data', 'block_configurable_reports'), '');
 
-        // タイル分割列
         $mform->addElement('select', 'tile_field',
             get_string('tiledpivot_tile_field', 'block_configurable_reports'), $options);
         $mform->addRule('tile_field', null, 'required', null, 'client');
         $mform->addHelpButton('tile_field', 'tiledpivot_tile_field', 'block_configurable_reports');
 
-        // X軸列
         $mform->addElement('select', 'x_field',
             get_string('pivotchart_x_field', 'block_configurable_reports'), $options);
         $mform->addRule('x_field', null, 'required', null, 'client');
         $mform->addHelpButton('x_field', 'pivotchart_x_field', 'block_configurable_reports');
 
-        // シリーズ列（色分け）
         $mform->addElement('select', 'series_field',
             get_string('pivotchart_series_field', 'block_configurable_reports'), $options);
         $mform->addRule('series_field', null, 'required', null, 'client');
         $mform->addHelpButton('series_field', 'pivotchart_series_field', 'block_configurable_reports');
 
-        // 値列
         $mform->addElement('select', 'value_field',
             get_string('pivotchart_value_field', 'block_configurable_reports'), $options);
         $mform->addRule('value_field', null, 'required', null, 'client');
         $mform->addHelpButton('value_field', 'pivotchart_value_field', 'block_configurable_reports');
 
-        // 集計方法
         $mform->addElement('select', 'value_agg',
             get_string('pivotchart_value_agg', 'block_configurable_reports'), $aggregations);
         $mform->setDefault('value_agg', 'sum');
@@ -112,42 +85,31 @@ class tiledpivot_form extends moodleform {
         $mform->addElement('header', 'chartjsoptions',
             get_string('head_chartjs_options', 'block_configurable_reports'));
 
-        // グラフタイプ
-        $charttypes = [
-            'bar'  => get_string('tiledchart_type_bar',  'block_configurable_reports'),
-            'line' => get_string('tiledchart_type_line', 'block_configurable_reports'),
-            'area' => get_string('tiledchart_type_area', 'block_configurable_reports'),
-        ];
         $mform->addElement('select', 'charttype',
-            get_string('tiledchart_charttype', 'block_configurable_reports'), $charttypes);
+            get_string('tiledchart_charttype', 'block_configurable_reports'), [
+                'bar'  => get_string('tiledchart_type_bar',  'block_configurable_reports'),
+                'line' => get_string('tiledchart_type_line', 'block_configurable_reports'),
+                'area' => get_string('tiledchart_type_area', 'block_configurable_reports'),
+            ]);
         $mform->setDefault('charttype', 'bar');
 
-        // グループ分け（bar のみ有効）
-        $bargroupings = [
-            'grouped' => get_string('bargrouping_grouped', 'block_configurable_reports'),
-            'stacked' => get_string('bargrouping_stacked', 'block_configurable_reports'),
-        ];
         $mform->addElement('select', 'bargrouping',
-            get_string('bargrouping', 'block_configurable_reports'), $bargroupings);
+            get_string('bargrouping', 'block_configurable_reports'), [
+                'grouped' => get_string('bargrouping_grouped', 'block_configurable_reports'),
+                'stacked' => get_string('bargrouping_stacked', 'block_configurable_reports'),
+            ]);
         $mform->setDefault('bargrouping', 'grouped');
         $mform->addHelpButton('bargrouping', 'bargrouping', 'block_configurable_reports');
 
-        // 1行あたりのタイル数
-        $columnsoptions = [
-            'auto' => get_string('tiledchart_columns_auto', 'block_configurable_reports'),
-            '1'    => '1',
-            '2'    => '2',
-            '3'    => '3',
-            '4'    => '4',
-            '5'    => '5',
-            '6'    => '6',
-        ];
         $mform->addElement('select', 'tilecolumns',
-            get_string('tiledchart_columns', 'block_configurable_reports'), $columnsoptions);
+            get_string('tiledchart_columns', 'block_configurable_reports'), [
+                'auto' => get_string('tiledchart_columns_auto', 'block_configurable_reports'),
+                '1' => '1', '2' => '2', '3' => '3',
+                '4' => '4', '5' => '5', '6' => '6',
+            ]);
         $mform->setDefault('tilecolumns', 'auto');
         $mform->addHelpButton('tilecolumns', 'tiledchart_columns', 'block_configurable_reports');
 
-        // タイルサイズ
         $mform->addElement('text', 'tilewidth',
             get_string('tiledchart_tilewidth', 'block_configurable_reports'));
         $mform->setDefault('tilewidth', 400);
@@ -160,51 +122,42 @@ class tiledpivot_form extends moodleform {
         $mform->setType('tileheight', PARAM_INT);
         $mform->addHelpButton('tileheight', 'tiledchart_tileheight', 'block_configurable_reports');
 
-        // Buttons.
+        $mform->addElement('advcheckbox', 'show_legend',
+            get_string('show_legend', 'block_configurable_reports'));
+        $mform->setDefault('show_legend', 1);
+        $mform->addHelpButton('show_legend', 'show_legend', 'block_configurable_reports');
+
         $this->add_action_buttons(true, get_string('add'));
     }
 
-    /**
-     * レポートのカラム一覧を取得
-     */
     private function get_column_options($report, $CFG): array {
         $options = [];
-
         if ($report->type !== 'sql') {
             $components = cr_unserialize($this->_customdata['report']->components);
-
             if (!is_array($components) || empty($components['columns']['elements'])) {
                 throw new moodle_exception('nocolumns');
             }
-
-            $columns = $components['columns']['elements'];
             $i = 0;
-            foreach ($columns as $c) {
+            foreach ($components['columns']['elements'] as $c) {
                 if (!empty($c['summary'])) {
-                    $key = "$i," . $c['summary'];
-                    $options[$key] = str_replace('_', ' ', $c['summary']);
+                    $options["$i," . $c['summary']] = str_replace('_', ' ', $c['summary']);
                     $i++;
                 }
             }
         } else {
             require_once($CFG->dirroot . '/blocks/configurable_reports/report.class.php');
             require_once($CFG->dirroot . '/blocks/configurable_reports/reports/' . $report->type . '/report.class.php');
-
             $reportclassname = 'report_' . $report->type;
             $reportclass     = new $reportclassname($report);
-
-            $components = cr_unserialize($report->components);
-            $config     = $components['customsql']['config'] ?? new stdclass;
-
+            $components      = cr_unserialize($report->components);
+            $config          = $components['customsql']['config'] ?? new stdclass;
             if (isset($config->querysql)) {
-                $sql = $config->querysql;
-                $sql = $reportclass->prepare_sql($sql);
+                $sql = $reportclass->prepare_sql($config->querysql);
                 if ($rs = $reportclass->execute_query($sql)) {
                     foreach ($rs as $row) {
                         $i = 0;
                         foreach ($row as $colname => $value) {
-                            $key = "$i,$colname";
-                            $options[$key] = str_replace('_', ' ', $colname);
+                            $options["$i,$colname"] = str_replace('_', ' ', $colname);
                             $i++;
                         }
                         break;
@@ -213,7 +166,6 @@ class tiledpivot_form extends moodleform {
                 }
             }
         }
-
         return $options;
     }
 }

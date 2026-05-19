@@ -744,6 +744,10 @@ $string['nahandling_help']       = 'How to treat non-numeric or missing values w
 $string['nahandling_exclude']    = 'Exclude from aggregation (default)';
 $string['nahandling_zero']       = 'Treat as zero';
 
+// legend display
+$string['show_legend']      = 'Show legend';
+$string['show_legend_help'] = 'Display the chart legend. Uncheck to hide the legend and reduce clutter, especially when there are many series.';
+
 
 // template editor
 

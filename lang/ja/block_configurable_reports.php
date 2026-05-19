@@ -171,6 +171,10 @@ $string['nahandling_help']    = '集計時に数値以外または欠損値を�
 $string['nahandling_exclude'] = '集計から除外（デフォルト）';
 $string['nahandling_zero']    = '0として扱う';
 
+// 凡例表示
+$string['show_legend']      = '凡例を表示する';
+$string['show_legend_help'] = 'グラフの凡例を表示します。系列が多い場合はチェックを外すと見やすくなります。凡例を非表示にした場合も、マウスオーバーで各系列の値を確認できます。';
+
 // テンプレートエディタ（プレースホルダー・GUIビルダー）
 $string['template_ph_graphs']     = '全グラフ';
 $string['template_ph_table']      = 'データテーブル';
